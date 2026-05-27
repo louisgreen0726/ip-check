@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IP Check</title>
+    <link rel="stylesheet" href="/app.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <div>
+          <h1>IP Check</h1>
+          <p id="health">Ready</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="load-sample" type="button">示例</button>
+        <button id="clear-all" type="button">清空</button>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <section class="config-panel" aria-label="查询配置">
+        <div class="field">
+          <label for="domains">域名</label>
+          <textarea id="domains" spellcheck="false">example.com
+a.b.c.d.e.f.g.example.com
+例子.测试</textarea>
+          <div class="inline-actions">
+            <input id="domain-file" type="file" accept=".txt,.csv,text/plain">
+            <button id="append-root-dot" type="button">补根点</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label>DNS</label>
+            <button id="add-endpoint" type="button">+ 添加</button>
+          </div>
+          <div id="endpoint-list" class="endpoint-list"></div>
+          <div class="preset-row">
+            <button type="button" data-preset="udp://1.1.1.1:53">UDP</button>
+            <button type="button" data-preset="tcp://1.1.1.1:53">TCP</button>
+            <button type="button" data-preset="tls://1.1.1.1:853">DoT</button>
+            <button type="button" data-preset="https://dns.google:443/dns-query">DoH</button>
+            <button type="button" data-preset="quic://dns.google:853">DoQ</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>记录类型</label>
+          <div id="type-grid" class="type-grid"></div>
+          <input id="custom-types" class="mono-input" type="text" placeholder="自定义 TYPE，如 HTTPS,SVCB,CAA">
+        </div>
+
+        <div class="option-grid">
+          <label>
+            <span>超时 ms</span>
+            <input id="timeout-ms" type="number" min="100" step="100" value="3000">
+          </label>
+          <label>
+            <span>重试</span>
+            <input id="retries" type="number" min="0" max="10" value="1">
+          </label>
+          <label>
+            <span>并发</span>
+            <input id="concurrency" type="number" min="1" max="256" value="16">
+          </label>
+          <label>
+            <span>DoH</span>
+            <select id="doh-method">
+              <option value="POST">POST</option>
+              <option value="GET">GET</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="toggle-grid">
+          <label><input id="edns" type="checkbox" checked> EDNS0</label>
+          <label><input id="dnssec" type="checkbox"> DNSSEC DO</label>
+          <label><input id="strict" type="checkbox"> 严格域名</label>
+          <label><input id="insecure" type="checkbox"> 跳过 TLS 校验</label>
+        </div>
+
+        <div class="run-row">
+          <button id="run" class="primary" type="button">解析</button>
+          <button id="cancel" type="button" disabled>取消</button>
+        </div>
+      </section>
+
+      <section class="results-panel" aria-label="解析结果">
+        <div class="summary-strip">
+          <div><span id="sum-total">0</span><small>总计</small></div>
+          <div><span id="sum-ok">0</span><small>OK</small></div>
+          <div><span id="sum-ip">0</span><small>IP</small></div>
+          <div><span id="sum-error">0</span><small>错误</small></div>
+          <div><span id="sum-ms">0</span><small>ms</small></div>
+        </div>
+
+        <div class="result-toolbar">
+          <input id="filter" type="search" placeholder="过滤结果">
+          <select id="status-filter">
+            <option value="">全部状态</option>
+            <option value="OK">OK</option>
+            <option value="NO_ANSWER">NO_ANSWER</option>
+            <option value="DNS_ERROR">DNS_ERROR</option>
+            <option value="ERROR">ERROR</option>
+            <option value="INVALID_DOMAIN">INVALID_DOMAIN</option>
+          </select>
+          <button id="export-json" type="button">JSON</button>
+          <button id="export-csv" type="button">CSV</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>状态</th>
+                <th>输入</th>
+                <th>类型</th>
+                <th>DNS</th>
+                <th>协议</th>
+                <th>RCODE</th>
+                <th>结果</th>
+                <th>ms</th>
+              </tr>
+            </thead>
+            <tbody id="result-body">
+              <tr class="empty-row"><td colspan="8">Ready</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <aside class="detail-panel" aria-label="结果详情">
+          <div class="detail-head">
+            <h2>详情</h2>
+            <button id="copy-detail" type="button">复制</button>
+          </div>
+          <div id="detail-content" class="detail-content">No selection</div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
