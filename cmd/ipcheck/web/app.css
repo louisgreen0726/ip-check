@@ -1,16 +1,19 @@
 :root {
   color-scheme: light;
-  --bg: #f5f7fa;
+  --bg: #fbfbfa;
   --panel: #ffffff;
-  --line: #d7dde6;
-  --text: #16202a;
-  --muted: #667085;
+  --line: #e6e4df;
+  --text: #37352f;
+  --muted: #787774;
+  --soft: #f7f6f3;
+  --hover: #efeeeb;
+  --ink: #2f3437;
   --teal: #0f766e;
-  --blue: #2563eb;
-  --amber: #b45309;
-  --red: #dc2626;
-  --green: #15803d;
-  --shadow: 0 16px 35px rgba(20, 30, 45, 0.08);
+  --blue: #2f6fed;
+  --amber: #b86e2d;
+  --red: #c84632;
+  --green: #448361;
+  --shadow: 0 10px 24px rgba(15, 15, 15, 0.06);
 }
 
 * {
@@ -35,7 +38,7 @@ textarea {
 button {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--panel);
   color: var(--text);
   min-height: 36px;
   padding: 0 12px;
@@ -43,7 +46,8 @@ button {
 }
 
 button:hover {
-  border-color: #a9b4c2;
+  background: var(--hover);
+  border-color: #d8d4cc;
 }
 
 button:disabled {
@@ -52,10 +56,15 @@ button:disabled {
 }
 
 .primary {
-  background: var(--teal);
-  border-color: var(--teal);
+  background: var(--ink);
+  border-color: var(--ink);
   color: #fff;
   font-weight: 700;
+}
+
+.primary:hover {
+  background: #111315;
+  border-color: #111315;
 }
 
 .topbar {
@@ -65,7 +74,7 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(251, 251, 250, 0.92);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -101,20 +110,20 @@ button:disabled {
   grid-template-columns: repeat(3, 1fr);
   gap: 5px;
   padding: 8px;
-  box-shadow: var(--shadow);
+  box-shadow: none;
 }
 
 .brand-mark span {
   border-radius: 6px;
-  background: var(--teal);
+  background: #4d7c73;
 }
 
 .brand-mark span:nth-child(2) {
-  background: var(--blue);
+  background: #8a6fdd;
 }
 
 .brand-mark span:nth-child(3) {
-  background: var(--amber);
+  background: #d1894c;
 }
 
 .top-actions,
@@ -144,7 +153,7 @@ button:disabled {
   grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
   gap: 18px;
   padding: 18px;
-  max-width: 1720px;
+  max-width: 1760px;
   margin: 0 auto;
 }
 
@@ -199,8 +208,8 @@ select {
 textarea:focus,
 input:focus,
 select:focus {
-  outline: 2px solid rgba(15, 118, 110, 0.22);
-  border-color: var(--teal);
+  outline: 2px solid rgba(55, 53, 47, 0.12);
+  border-color: #aaa49a;
 }
 
 textarea {
@@ -258,7 +267,12 @@ textarea {
   border-radius: 8px;
   padding: 0 8px;
   font-weight: 600;
-  background: #fff;
+  background: var(--soft);
+}
+
+.type-grid label:hover,
+.toggle-grid label:hover {
+  background: var(--hover);
 }
 
 .type-grid input,
@@ -304,7 +318,7 @@ textarea {
 
 .summary-strip div {
   min-height: 72px;
-  padding: 12px 16px;
+  padding: 13px 16px;
   border-right: 1px solid var(--line);
 }
 
@@ -315,7 +329,7 @@ textarea {
 .summary-strip span {
   display: block;
   font-size: 24px;
-  font-weight: 800;
+  font-weight: 760;
 }
 
 .summary-strip small {
@@ -354,10 +368,21 @@ th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #f9fafb;
+  background: var(--soft);
   color: var(--muted);
   font-size: 12px;
 }
+
+th:nth-child(1) { width: 116px; }
+th:nth-child(2) { width: 180px; }
+th:nth-child(3) { width: 72px; }
+th:nth-child(4) { width: 220px; }
+th:nth-child(5) { width: 82px; }
+th:nth-child(6) { width: 88px; }
+th:nth-child(7) { width: 190px; }
+th:nth-child(8) { width: 190px; }
+th:nth-child(9) { width: 220px; }
+th:nth-child(10) { width: 72px; }
 
 tbody tr {
   cursor: pointer;
@@ -365,7 +390,7 @@ tbody tr {
 
 tbody tr:hover,
 tbody tr.selected {
-  background: #eef8f6;
+  background: #f1f0ed;
 }
 
 .empty-row td {
@@ -388,22 +413,22 @@ tbody tr.selected {
 
 .status.OK {
   color: var(--green);
-  background: #eaf7ee;
-  border-color: #b6e1c2;
+  background: #edf6ef;
+  border-color: #c9dfd0;
 }
 
 .status.NO_ANSWER {
   color: var(--amber);
-  background: #fff7ed;
-  border-color: #fed7aa;
+  background: #fbf1e6;
+  border-color: #ead1b5;
 }
 
 .status.DNS_ERROR,
 .status.ERROR,
 .status.INVALID_DOMAIN {
   color: var(--red);
-  background: #fef2f2;
-  border-color: #fecaca;
+  background: #faece9;
+  border-color: #e9c2ba;
 }
 
 .detail-panel {

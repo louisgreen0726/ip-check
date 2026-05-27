@@ -95,6 +95,7 @@ function gatherPayload() {
     retries: numberValue("#retries", 1),
     concurrency: numberValue("#concurrency", 16),
     strict: $("#strict").checked,
+    ipInfo: $("#ip-info").checked,
     edns: $("#edns").checked,
     dnssec: $("#dnssec").checked,
     dohMethod: $("#doh-method").value,
@@ -183,12 +184,13 @@ function renderResults() {
       if (!query) return true;
       return [
         item.input, item.domain, item.ascii, item.type, item.resolver,
-        item.transportProtocol, item.status, item.rcode, answerText(item), item.error
+        item.transportProtocol, item.status, item.rcode, answerText(item),
+        locationText(item), operatorText(item), item.error
       ].filter(Boolean).join(" ").toLowerCase().includes(query);
     });
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">${state.results.length ? "No match" : "Ready"}</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">${state.results.length ? "No match" : "Ready"}</td></tr>`;
     return;
   }
 
@@ -201,6 +203,8 @@ function renderResults() {
       <td>${escapeHTML(item.transportProtocol || "")}</td>
       <td>${escapeHTML(item.rcode || "")}</td>
       <td>${escapeHTML(answerText(item))}</td>
+      <td>${escapeHTML(locationText(item))}</td>
+      <td>${escapeHTML(operatorText(item))}</td>
       <td>${item.durationMs || 0}</td>
     </tr>
   `).join("");
@@ -229,8 +233,11 @@ function renderDetail() {
       <dt>DNS</dt><dd>${escapeHTML(item.resolver || "")}</dd>
       <dt>状态</dt><dd>${escapeHTML(item.status || "")}</dd>
       <dt>结果</dt><dd>${escapeHTML(answerText(item))}</dd>
+      <dt>位置</dt><dd>${escapeHTML(locationText(item))}</dd>
+      <dt>运营商</dt><dd>${escapeHTML(operatorText(item))}</dd>
       <dt>错误</dt><dd>${escapeHTML(item.error || "")}</dd>
     </dl>
+    ${ipInfoSection(item.ipInfo)}
     ${recordSection("Answer", item.answer)}
     ${recordSection("Authority", item.authority)}
     ${recordSection("Additional", item.additional)}
@@ -268,16 +275,57 @@ function answerText(item) {
   return item.error || "";
 }
 
+function ipInfoSection(infos) {
+  if (!infos || !infos.length) return "";
+  return `
+    <h3>IP 信息</h3>
+    <table>
+      <thead><tr><th>IP</th><th>位置</th><th>ASN</th><th>运营商</th><th>来源</th></tr></thead>
+      <tbody>
+        ${infos.map((info) => `
+          <tr>
+            <td>${escapeHTML(info.ip || "")}</td>
+            <td>${escapeHTML(locationFromInfo(info))}</td>
+            <td>${escapeHTML(info.asn || "")}</td>
+            <td>${escapeHTML(info.isp || info.org || "")}</td>
+            <td>${escapeHTML(info.error || info.provider || "")}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function locationText(item) {
+  return (item.ipInfo || [])
+    .map(locationFromInfo)
+    .filter(Boolean)
+    .join("; ");
+}
+
+function operatorText(item) {
+  return (item.ipInfo || [])
+    .map((info) => [info.asn, info.isp || info.org].filter(Boolean).join(" "))
+    .filter(Boolean)
+    .join("; ");
+}
+
+function locationFromInfo(info) {
+  if (!info || info.error) return info && info.error ? info.error : "";
+  return [info.country, info.region, info.city].filter(Boolean).join(" / ");
+}
+
 function exportJSON() {
   download("ipcheck-results.json", JSON.stringify({ summary: state.summary, results: state.results }, null, 2), "application/json");
 }
 
 function exportCSV() {
-  const header = ["input", "domain", "ascii", "type", "resolver", "protocol", "status", "rcode", "ips", "answers", "duration_ms", "error", "warnings"];
+  const header = ["input", "domain", "ascii", "type", "resolver", "protocol", "status", "rcode", "ips", "answers", "location", "operator", "duration_ms", "error", "warnings"];
   const rows = state.results.map((item) => [
     item.input, item.domain, item.ascii, item.type, item.resolver, item.transportProtocol,
-    item.status, item.rcode, (item.ips || []).join(";"), answerText(item), item.durationMs || 0,
-    item.error || "", (item.warnings || []).join(";")
+    item.status, item.rcode, (item.ips || []).join(";"), answerText(item),
+    locationText(item), operatorText(item), item.durationMs || 0, item.error || "",
+    (item.warnings || []).join(";")
   ]);
   const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
   download("ipcheck-results.csv", csv, "text/csv");
@@ -365,6 +413,7 @@ function saveSettings() {
     retries: $("#retries").value,
     concurrency: $("#concurrency").value,
     strict: $("#strict").checked,
+    ipInfo: $("#ip-info").checked,
     edns: $("#edns").checked,
     dnssec: $("#dnssec").checked,
     dohMethod: $("#doh-method").value,
@@ -389,6 +438,7 @@ function restoreSettings() {
     $("#retries").value = data.retries || "1";
     $("#concurrency").value = data.concurrency || "16";
     $("#strict").checked = Boolean(data.strict);
+    $("#ip-info").checked = data.ipInfo !== false;
     $("#edns").checked = data.edns !== false;
     $("#dnssec").checked = Boolean(data.dnssec);
     $("#doh-method").value = data.dohMethod || "POST";

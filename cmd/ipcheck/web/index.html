@@ -80,6 +80,7 @@ a.b.c.d.e.f.g.example.com
         </div>
 
         <div class="toggle-grid">
+          <label><input id="ip-info" type="checkbox" checked> IP 信息</label>
           <label><input id="edns" type="checkbox" checked> EDNS0</label>
           <label><input id="dnssec" type="checkbox"> DNSSEC DO</label>
           <label><input id="strict" type="checkbox"> 严格域名</label>
@@ -126,11 +127,13 @@ a.b.c.d.e.f.g.example.com
                 <th>协议</th>
                 <th>RCODE</th>
                 <th>结果</th>
+                <th>位置</th>
+                <th>运营商</th>
                 <th>ms</th>
               </tr>
             </thead>
             <tbody id="result-body">
-              <tr class="empty-row"><td colspan="8">Ready</td></tr>
+              <tr class="empty-row"><td colspan="10">Ready</td></tr>
             </tbody>
           </table>
         </div>

@@ -18,6 +18,7 @@ import (
 
 	"ipcheck/internal/domain"
 	"ipcheck/internal/endpoint"
+	"ipcheck/internal/ipinfo"
 	"ipcheck/internal/resolver"
 )
 
@@ -51,6 +52,7 @@ type cliOptions struct {
 	dnssec             bool
 	dohMethod          string
 	insecureSkipVerify bool
+	ipInfo             bool
 	version            bool
 	examples           bool
 }
@@ -72,6 +74,7 @@ type result struct {
 	Warnings          []string                `json:"warnings,omitempty"`
 	Error             string                  `json:"error,omitempty"`
 	IPs               []string                `json:"ips,omitempty"`
+	IPInfo            []ipinfo.Info           `json:"ipInfo,omitempty"`
 	CNAMEChain        []string                `json:"cnameChain,omitempty"`
 	Answer            []resolver.Record       `json:"answer,omitempty"`
 	Authority         []resolver.Record       `json:"authority,omitempty"`
@@ -137,6 +140,9 @@ func run(args []string, stdout, stderr io.Writer, stdin *os.File) error {
 	}
 
 	results := resolveAll(context.Background(), domains, endpoints, qtypes, opts)
+	if opts.ipInfo {
+		enrichIPInfo(context.Background(), results)
+	}
 	sort.SliceStable(results, func(i, j int) bool {
 		if results[i].Input != results[j].Input {
 			return results[i].Input < results[j].Input
@@ -175,6 +181,7 @@ func parseFlags(args []string, stderr io.Writer) (cliOptions, []string) {
 	fs.BoolVar(&opts.dnssec, "dnssec", false, "设置 EDNS DNSSEC DO bit")
 	fs.StringVar(&opts.dohMethod, "doh-method", "POST", "DoH 方法: POST 或 GET")
 	fs.BoolVar(&opts.insecureSkipVerify, "insecure-skip-verify", false, "跳过 TLS 证书校验，仅建议调试使用")
+	fs.BoolVar(&opts.ipInfo, "ip-info", false, "查询解析出的 IP 位置、ASN 和运营商信息")
 	fs.BoolVar(&opts.version, "version", false, "显示版本")
 	fs.BoolVar(&opts.examples, "examples", false, "显示示例")
 	fs.Usage = func() {
@@ -362,7 +369,7 @@ func writeJSON(w io.Writer, results []result) error {
 func writeCSV(w io.Writer, results []result) error {
 	cw := csv.NewWriter(w)
 	defer cw.Flush()
-	if err := cw.Write([]string{"input", "domain", "ascii", "type", "resolver", "protocol", "status", "rcode", "ips", "answers", "duration_ms", "error", "warnings"}); err != nil {
+	if err := cw.Write([]string{"input", "domain", "ascii", "type", "resolver", "protocol", "status", "rcode", "ips", "location", "operator", "answers", "duration_ms", "error", "warnings"}); err != nil {
 		return err
 	}
 	for _, r := range results {
@@ -376,6 +383,8 @@ func writeCSV(w io.Writer, results []result) error {
 			r.Status,
 			r.RCode,
 			strings.Join(r.IPs, ";"),
+			ipLocationsInline(r.IPInfo),
+			ipOperatorsInline(r.IPInfo),
 			recordsInline(r.Answer),
 			fmt.Sprintf("%d", r.DurationMS),
 			r.Error,
@@ -389,7 +398,7 @@ func writeCSV(w io.Writer, results []result) error {
 
 func writeTable(w io.Writer, results []result) error {
 	tw := tabwriter.NewWriter(w, 0, 2, 2, ' ', 0)
-	fmt.Fprintln(tw, "INPUT\tTYPE\tDNS\tPROTO\tSTATUS\tRCODE\tIPS/ANSWER\tMS\tERROR")
+	fmt.Fprintln(tw, "INPUT\tTYPE\tDNS\tPROTO\tSTATUS\tRCODE\tIPS/ANSWER\tLOCATION\tOPERATOR\tMS\tERROR")
 	for _, r := range results {
 		answer := strings.Join(r.IPs, ",")
 		if answer == "" {
@@ -405,7 +414,9 @@ func writeTable(w io.Writer, results []result) error {
 		if len(errMsg) > 80 {
 			errMsg = errMsg[:77] + "..."
 		}
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%s\n",
+		location := ipLocationsInline(r.IPInfo)
+		operator := ipOperatorsInline(r.IPInfo)
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%s\n",
 			r.Input,
 			r.Type,
 			r.Resolver,
@@ -413,6 +424,8 @@ func writeTable(w io.Writer, results []result) error {
 			r.Status,
 			r.RCode,
 			answer,
+			location,
+			operator,
 			r.DurationMS,
 			errMsg,
 		)
@@ -429,6 +442,68 @@ func recordsInline(records []resolver.Record) string {
 		parts = append(parts, fmt.Sprintf("%s=%s", rec.Type, rec.Data))
 	}
 	return strings.Join(parts, ";")
+}
+
+func enrichIPInfo(ctx context.Context, results []result) {
+	ips := make([]string, 0)
+	for _, res := range results {
+		ips = append(ips, res.IPs...)
+	}
+	infos := ipinfo.NewClient().LookupMany(ctx, ips)
+	for idx := range results {
+		for _, ip := range results[idx].IPs {
+			if info, ok := infos[ip]; ok {
+				results[idx].IPInfo = append(results[idx].IPInfo, info)
+			}
+		}
+	}
+}
+
+func ipLocationsInline(infos []ipinfo.Info) string {
+	parts := make([]string, 0, len(infos))
+	for _, info := range infos {
+		if info.Error != "" {
+			continue
+		}
+		location := strings.Join(nonEmpty(info.Country, info.Region, info.City), "/")
+		if location != "" {
+			parts = append(parts, info.IP+" "+location)
+		}
+	}
+	return strings.Join(parts, ";")
+}
+
+func ipOperatorsInline(infos []ipinfo.Info) string {
+	parts := make([]string, 0, len(infos))
+	for _, info := range infos {
+		if info.Error != "" {
+			continue
+		}
+		operator := strings.Join(nonEmpty(info.ASN, firstNonEmpty(info.ISP, info.Org)), " ")
+		if operator != "" {
+			parts = append(parts, info.IP+" "+operator)
+		}
+	}
+	return strings.Join(parts, ";")
+}
+
+func nonEmpty(values ...string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			out = append(out, value)
+		}
+	}
+	return out
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func splitComma(value string) []string {

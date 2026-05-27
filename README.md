@@ -49,6 +49,8 @@ http://127.0.0.1:8765
 
 The GUI uses the same resolver core as the CLI and supports the same endpoint formats, custom ports, query types, EDNS0, DNSSEC, DoH method selection, strict domain validation, TLS verification options, batch input, result details, and JSON/CSV export.
 
+When IP information is enabled, resolved IPs are enriched with location, ASN, and operator/organization data from `ipapi.co`.
+
 ## Android
 
 The Android app is built from the same Web GUI and a Go mobile AAR bridge.
@@ -187,6 +189,7 @@ By default, underscore labels such as `_sip._tcp.example.com` are allowed with a
 --dnssec                   Set the EDNS DNSSEC DO bit
 --doh-method POST|GET      DoH method
 --insecure-skip-verify     Skip TLS verification for debugging
+--ip-info                  Enrich resolved IPs with location, ASN, and operator data
 ```
 
 ## Notes

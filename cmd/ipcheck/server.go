@@ -40,6 +40,7 @@ type resolveRequest struct {
 	DNSSEC             bool     `json:"dnssec"`
 	DoHMethod          string   `json:"dohMethod"`
 	InsecureSkipVerify bool     `json:"insecureSkipVerify"`
+	IPInfo             *bool    `json:"ipInfo"`
 }
 
 type resolveResponse struct {
@@ -221,6 +222,9 @@ func resolveFromRequest(ctx context.Context, req resolveRequest) ([]result, erro
 	}
 
 	results := resolveAll(ctx, domains, endpoints, qtypes, cli)
+	if req.IPInfo != nil && *req.IPInfo {
+		enrichIPInfo(ctx, results)
+	}
 	sort.SliceStable(results, func(i, j int) bool {
 		if results[i].Input != results[j].Input {
 			return results[i].Input < results[j].Input

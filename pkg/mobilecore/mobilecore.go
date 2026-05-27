@@ -11,6 +11,7 @@ import (
 
 	"ipcheck/internal/domain"
 	"ipcheck/internal/endpoint"
+	"ipcheck/internal/ipinfo"
 	"ipcheck/internal/resolver"
 )
 
@@ -29,6 +30,7 @@ type Request struct {
 	DNSSEC             bool     `json:"dnssec"`
 	DoHMethod          string   `json:"dohMethod"`
 	InsecureSkipVerify bool     `json:"insecureSkipVerify"`
+	IPInfo             *bool    `json:"ipInfo"`
 }
 
 type Response struct {
@@ -65,6 +67,7 @@ type Result struct {
 	Warnings          []string                `json:"warnings,omitempty"`
 	Error             string                  `json:"error,omitempty"`
 	IPs               []string                `json:"ips,omitempty"`
+	IPInfo            []ipinfo.Info           `json:"ipInfo,omitempty"`
 	CNAMEChain        []string                `json:"cnameChain,omitempty"`
 	Answer            []resolver.Record       `json:"answer,omitempty"`
 	Authority         []resolver.Record       `json:"authority,omitempty"`
@@ -152,6 +155,9 @@ func Resolve(ctx context.Context, req Request) ([]Result, error) {
 	opts.InsecureSkipVerify = req.InsecureSkipVerify
 
 	results := resolveAll(ctx, inputs, endpoints, qtypes, req.Strict, concurrency, opts)
+	if req.IPInfo != nil && *req.IPInfo {
+		enrichIPInfo(ctx, results)
+	}
 	sort.SliceStable(results, func(i, j int) bool {
 		if results[i].Input != results[j].Input {
 			return results[i].Input < results[j].Input
@@ -289,6 +295,21 @@ func summarize(results []Result, duration time.Duration) Summary {
 		}
 	}
 	return summary
+}
+
+func enrichIPInfo(ctx context.Context, results []Result) {
+	ips := make([]string, 0)
+	for _, res := range results {
+		ips = append(ips, res.IPs...)
+	}
+	infos := ipinfo.NewClient().LookupMany(ctx, ips)
+	for idx := range results {
+		for _, ip := range results[idx].IPs {
+			if info, ok := infos[ip]; ok {
+				results[idx].IPInfo = append(results[idx].IPInfo, info)
+			}
+		}
+	}
 }
 
 func splitInputs(value string) []string {
