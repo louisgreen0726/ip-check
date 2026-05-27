@@ -2,3 +2,7 @@
 bin/
 dist/
 *.log
+android/.gradle/
+android/build/
+android/app/build/
+android/app/libs/*.aar

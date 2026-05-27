@@ -1,0 +1,67 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Install gomobile
+        run: |
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          gomobile init
+
+      - name: Build Go Android AAR
+        run: |
+          mkdir -p android/app/libs
+          gomobile bind \
+            -target=android \
+            -androidapi 23 \
+            -javapkg=com.louisgreen.ipcheck \
+            -o android/app/libs/ipcheckcore.aar \
+            ./pkg/mobilecore
+
+      - name: Build debug APK
+        run: gradle -p android assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v5
+        with:
+          name: ipcheck-android-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk

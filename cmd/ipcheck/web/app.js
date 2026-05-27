@@ -46,6 +46,11 @@ function bindEvents() {
 
 async function ping() {
   try {
+    if (hasAndroidBridge()) {
+      const data = JSON.parse(window.IpCheckAndroid.health());
+      $("#health").textContent = `${data.status} · ${data.version} · Android`;
+      return;
+    }
     const response = await fetch("/api/health");
     const data = await response.json();
     $("#health").textContent = `${data.status} · ${data.version}`;
@@ -108,21 +113,13 @@ async function runResolve() {
     return;
   }
 
-  state.abort = new AbortController();
+  state.abort = hasAndroidBridge() ? null : new AbortController();
   setBusy(true);
   setHealth("Resolving");
 
   try {
-    const response = await fetch("/api/resolve", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: state.abort.signal
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || `HTTP ${response.status}`);
-    }
+    const data = await resolvePayload(payload);
+    if (data.error) throw new Error(data.error);
     state.results = data.results || [];
     state.summary = data.summary || null;
     state.selected = state.results.length ? 0 : -1;
@@ -142,9 +139,27 @@ async function runResolve() {
   }
 }
 
+async function resolvePayload(payload) {
+  if (hasAndroidBridge()) {
+    await new Promise((resolve) => window.setTimeout(resolve, 20));
+    return JSON.parse(window.IpCheckAndroid.resolve(JSON.stringify(payload)));
+  }
+  const response = await fetch("/api/resolve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+      signal: state.abort ? state.abort.signal : undefined
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+  return data;
+}
+
 function cancelResolve() {
   if (state.abort) {
     state.abort.abort();
+  } else if (hasAndroidBridge()) {
+    setHealth("当前 Android 查询会在本轮请求结束后返回");
   }
 }
 
@@ -417,6 +432,12 @@ function debounce(fn, delay) {
     window.clearTimeout(timer);
     timer = window.setTimeout(() => fn(...args), delay);
   };
+}
+
+function hasAndroidBridge() {
+  return window.IpCheckAndroid &&
+    typeof window.IpCheckAndroid.resolve === "function" &&
+    typeof window.IpCheckAndroid.health === "function";
 }
 
 document.addEventListener("DOMContentLoaded", init);
