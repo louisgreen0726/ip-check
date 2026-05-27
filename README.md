@@ -49,6 +49,29 @@ http://127.0.0.1:8765
 
 The GUI uses the same resolver core as the CLI and supports the same endpoint formats, custom ports, query types, EDNS0, DNSSEC, DoH method selection, strict domain validation, TLS verification options, batch input, result details, and JSON/CSV export.
 
+## Android
+
+The Android app is built from the same Web GUI and a Go mobile AAR bridge.
+
+GitHub Actions builds a debug APK on each push:
+
+```text
+Actions -> Android -> artifact: ipcheck-android-debug-apk
+```
+
+The workflow:
+
+1. Installs Go, Java, Android SDK, Gradle, and gomobile.
+2. Builds `pkg/mobilecore` into `android/app/libs/ipcheckcore.aar`.
+3. Builds `android/app/build/outputs/apk/debug/app-debug.apk`.
+4. Uploads the APK as a GitHub Actions artifact.
+
+The local downloaded APK, when present, is ignored by git:
+
+```text
+dist/android/app-debug.apk
+```
+
 ## Custom DNS Endpoints
 
 Every protocol supports explicit ports:
