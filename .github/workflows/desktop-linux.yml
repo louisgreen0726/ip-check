@@ -1,0 +1,58 @@
+name: Desktop Linux
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  linux:
+    name: Build Linux Desktop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: desktop/electron/package-lock.json
+
+      - name: Install Linux packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools
+
+      - name: Build Go backend
+        run: |
+          mkdir -p dist/desktop
+          go build -o dist/desktop/ipcheck ./cmd/ipcheck
+          chmod +x dist/desktop/ipcheck
+
+      - name: Install Electron dependencies
+        working-directory: desktop/electron
+        run: npm ci
+
+      - name: Build Linux desktop packages
+        working-directory: desktop/electron
+        run: npm run dist:linux
+
+      - name: Upload Linux desktop artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: ipcheck-linux-desktop
+          path: |
+            desktop/electron/dist/*.AppImage
+            desktop/electron/dist/*.deb

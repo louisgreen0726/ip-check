@@ -51,6 +51,25 @@ The GUI uses the same resolver core as the CLI and supports the same endpoint fo
 
 When IP information is enabled, resolved IPs are enriched with location, ASN, and operator/organization data from `ipapi.co`.
 
+## Linux Desktop App
+
+GitHub Actions also builds an Electron desktop wrapper for Linux:
+
+```text
+Actions -> Desktop Linux -> artifact: ipcheck-linux-desktop
+```
+
+The desktop package starts the embedded `ipcheck` backend automatically and opens the GUI in an application window. No terminal command or browser step is needed after launching the AppImage/deb package.
+
+Local development:
+
+```bash
+PATH="$PWD/.tools/go/bin:$PATH" go build -o bin/ipcheck ./cmd/ipcheck
+cd desktop/electron
+npm ci
+npm start
+```
+
 ## Android
 
 The Android app is built from the same Web GUI and a Go mobile AAR bridge.
