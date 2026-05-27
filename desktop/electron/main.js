@@ -66,11 +66,10 @@ function createWindow() {
 }
 
 async function startBackend(port) {
-  const binary = resolveBackendBinary();
+  const binary = prepareBackendBinary(resolveBackendBinary());
   if (!fs.existsSync(binary)) {
     throw new Error(`找不到内置后端二进制: ${binary}`);
   }
-  fs.chmodSync(binary, 0o755);
   serverProcess = spawn(binary, ["serve", "--addr", `127.0.0.1:${port}`], {
     stdio: ["ignore", "pipe", "pipe"],
     env: {
@@ -107,6 +106,28 @@ function resolveBackendBinary() {
     return path.join(process.resourcesPath, "ipcheck", "ipcheck");
   }
   return path.resolve(__dirname, "../../bin/ipcheck");
+}
+
+function prepareBackendBinary(binary) {
+  if (process.platform === "win32") {
+    return binary;
+  }
+  try {
+    fs.accessSync(binary, fs.constants.X_OK);
+    return binary;
+  } catch (error) {
+    if (!app.isPackaged) {
+      fs.chmodSync(binary, 0o755);
+      return binary;
+    }
+  }
+
+  const targetDir = path.join(app.getPath("userData"), "backend");
+  const target = path.join(targetDir, path.basename(binary));
+  fs.mkdirSync(targetDir, { recursive: true });
+  fs.copyFileSync(binary, target);
+  fs.chmodSync(target, 0o755);
+  return target;
 }
 
 function findFreePort() {
