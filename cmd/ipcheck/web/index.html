@@ -13,15 +13,19 @@
           <span></span><span></span><span></span><span></span>
         </div>
         <div class="brand-copy">
-          <p class="eyebrow">本地 DNS 工作台</p>
+          <p class="eyebrow" data-i18n="brand.eyebrow">本地 DNS 工作台</p>
           <h1>IP Check</h1>
         </div>
       </div>
       <div class="topbar-meta">
         <p id="health" class="health-pill" aria-live="polite">Ready</p>
+        <div class="language-switch" role="group" aria-label="语言 / Language" data-i18n-aria-label="language.aria">
+          <button id="lang-zh" class="lang-button is-active" type="button" data-lang="zh-CN">中</button>
+          <button id="lang-en" class="lang-button" type="button" data-lang="en">EN</button>
+        </div>
         <div class="top-actions">
-          <button id="load-sample" class="ghost-button" type="button">示例</button>
-          <button id="clear-all" class="ghost-button" type="button">清空</button>
+          <button id="load-sample" class="ghost-button" type="button" data-i18n="actions.sample">示例</button>
+          <button id="clear-all" class="ghost-button" type="button" data-i18n="actions.clear">清空</button>
         </div>
       </div>
     </header>
@@ -29,8 +33,8 @@
     <main class="workspace">
       <section class="settings-sidebar surface" aria-labelledby="settings-title">
         <div class="surface-head">
-          <p class="eyebrow">查询配置</p>
-          <h2 id="settings-title">解析请求</h2>
+          <p class="eyebrow" data-i18n="settings.eyebrow">查询配置</p>
+          <h2 id="settings-title" data-i18n="settings.title">解析请求</h2>
         </div>
 
         <div id="form-notice" class="form-notice" role="status" hidden></div>
@@ -38,15 +42,15 @@
         <section class="field-section" aria-labelledby="domains-title">
           <div class="section-head">
             <div>
-              <h3 id="domains-title">域名</h3>
+              <h3 id="domains-title" data-i18n="domains.title">域名</h3>
               <p id="domain-count">3 个域名</p>
             </div>
             <div class="compact-actions">
               <label class="mini-button file-button" for="domain-file">
-                导入
+                <span data-i18n="actions.import">导入</span>
                 <input id="domain-file" type="file" accept=".txt,.csv,text/plain">
               </label>
-              <button id="append-root-dot" class="mini-button" type="button">补根点</button>
+              <button id="append-root-dot" class="mini-button" type="button" data-i18n="actions.appendRootDot">补根点</button>
             </div>
           </div>
           <textarea id="domains" spellcheck="false">example.com
@@ -57,13 +61,13 @@ a.b.c.d.e.f.g.example.com
         <section class="field-section" aria-labelledby="dns-title">
           <div class="section-head">
             <div>
-              <h3 id="dns-title">DNS</h3>
+              <h3 id="dns-title" data-i18n="dns.title">DNS</h3>
               <p id="endpoint-count">0 个端点</p>
             </div>
-            <button id="add-endpoint" class="mini-button" type="button">添加</button>
+            <button id="add-endpoint" class="mini-button" type="button" data-i18n="actions.add">添加</button>
           </div>
           <div id="endpoint-list" class="endpoint-list"></div>
-          <div class="preset-row" aria-label="DNS 预设">
+          <div class="preset-row" aria-label="DNS 预设" data-i18n-aria-label="dns.presetsAria">
             <button type="button" data-preset="udp://1.1.1.1:53">UDP</button>
             <button type="button" data-preset="tcp://1.1.1.1:53">TCP</button>
             <button type="button" data-preset="tls://1.1.1.1:853">DoT</button>
@@ -75,36 +79,36 @@ a.b.c.d.e.f.g.example.com
         <section class="field-section" aria-labelledby="records-title">
           <div class="section-head">
             <div>
-              <h3 id="records-title">记录类型</h3>
-              <p>默认 A / AAAA</p>
+              <h3 id="records-title" data-i18n="records.title">记录类型</h3>
+              <p data-i18n="records.subtitle">默认 A / AAAA</p>
             </div>
           </div>
           <div id="type-grid" class="type-grid"></div>
-          <input id="custom-types" class="mono-input" type="text" placeholder="自定义 TYPE，如 HTTPS,SVCB,CAA">
+          <input id="custom-types" class="mono-input" type="text" placeholder="自定义 TYPE，如 HTTPS,SVCB,CAA" data-i18n-placeholder="records.customPlaceholder">
         </section>
 
         <section class="field-section" aria-labelledby="options-title">
           <div class="section-head">
             <div>
-              <h3 id="options-title">参数</h3>
-              <p>超时、重试、并发</p>
+              <h3 id="options-title" data-i18n="options.title">参数</h3>
+              <p data-i18n="options.subtitle">超时、重试、并发</p>
             </div>
           </div>
           <div class="option-grid">
             <label>
-              <span>超时 ms</span>
+              <span data-i18n="options.timeout">超时 ms</span>
               <input id="timeout-ms" type="number" min="100" step="100" value="3000">
             </label>
             <label>
-              <span>重试</span>
+              <span data-i18n="options.retries">重试</span>
               <input id="retries" type="number" min="0" max="10" value="1">
             </label>
             <label>
-              <span>并发</span>
+              <span data-i18n="options.concurrency">并发</span>
               <input id="concurrency" type="number" min="1" max="256" value="16">
             </label>
             <label>
-              <span>DoH</span>
+              <span data-i18n="options.doh">DoH</span>
               <select id="doh-method">
                 <option value="POST">POST</option>
                 <option value="GET">GET</option>
@@ -114,46 +118,46 @@ a.b.c.d.e.f.g.example.com
         </section>
 
         <details class="advanced-section" open>
-          <summary>高级选项</summary>
+          <summary data-i18n="advanced.title">高级选项</summary>
           <div class="toggle-grid">
-            <label><input id="ip-info" type="checkbox" checked><span>IP 信息</span></label>
+            <label><input id="ip-info" type="checkbox" checked><span data-i18n="advanced.ipInfo">IP 信息</span></label>
             <label><input id="edns" type="checkbox" checked><span>EDNS0</span></label>
             <label><input id="dnssec" type="checkbox"><span>DNSSEC DO</span></label>
-            <label><input id="strict" type="checkbox"><span>严格域名</span></label>
-            <label class="wide-toggle"><input id="insecure" type="checkbox"><span>跳过 TLS 校验</span></label>
+            <label><input id="strict" type="checkbox"><span data-i18n="advanced.strict">严格域名</span></label>
+            <label class="wide-toggle"><input id="insecure" type="checkbox"><span data-i18n="advanced.insecure">跳过 TLS 校验</span></label>
           </div>
         </details>
 
         <div class="settings-actions">
-          <button id="run" class="primary" type="button">解析</button>
-          <button id="cancel" class="ghost-button" type="button" disabled>取消</button>
+          <button id="run" class="primary" type="button" data-i18n="actions.resolve">解析</button>
+          <button id="cancel" class="ghost-button" type="button" disabled data-i18n="actions.cancel">取消</button>
         </div>
       </section>
 
-      <section class="result-workspace" aria-label="解析结果">
-        <section class="summary-cards" aria-label="结果摘要">
+      <section class="result-workspace" aria-label="解析结果" data-i18n-aria-label="results.aria">
+        <section class="summary-cards" aria-label="结果摘要" data-i18n-aria-label="summary.aria">
           <article class="metric-card">
-            <span>总计</span>
+            <span data-i18n="summary.total">总计</span>
             <strong id="sum-total">0</strong>
-            <small>条结果</small>
+            <small data-i18n="summary.totalSmall">条结果</small>
           </article>
           <article class="metric-card metric-ok">
             <span>OK</span>
             <strong id="sum-ok">0</strong>
-            <small>成功</small>
+            <small data-i18n="summary.okSmall">成功</small>
           </article>
           <article class="metric-card metric-ip">
             <span>IP</span>
             <strong id="sum-ip">0</strong>
-            <small>含信息</small>
+            <small data-i18n="summary.ipSmall">含信息</small>
           </article>
           <article id="metric-error" class="metric-card metric-error">
-            <span>错误</span>
+            <span data-i18n="summary.error">错误</span>
             <strong id="sum-error">0</strong>
-            <small>需关注</small>
+            <small data-i18n="summary.errorSmall">需关注</small>
           </article>
           <article class="metric-card">
-            <span>耗时</span>
+            <span data-i18n="summary.duration">耗时</span>
             <strong id="sum-ms">0</strong>
             <small>ms</small>
           </article>
@@ -162,22 +166,22 @@ a.b.c.d.e.f.g.example.com
         <section class="results-area">
           <div class="results-head">
             <div>
-              <p class="eyebrow">查询结果</p>
-              <h2>结果</h2>
+              <p class="eyebrow" data-i18n="results.eyebrow">查询结果</p>
+              <h2 data-i18n="results.title">结果</h2>
             </div>
-            <div class="view-switch" role="group" aria-label="结果视图">
-              <button id="view-cards" class="view-button is-active" type="button" data-view="cards">卡片</button>
-              <button id="view-table" class="view-button" type="button" data-view="table">表格</button>
+            <div class="view-switch" role="group" aria-label="结果视图" data-i18n-aria-label="view.aria">
+              <button id="view-cards" class="view-button is-active" type="button" data-view="cards" data-i18n="view.cards">卡片</button>
+              <button id="view-table" class="view-button" type="button" data-view="table" data-i18n="view.table">表格</button>
             </div>
           </div>
 
           <div class="result-toolbar">
             <label class="search-field">
-              <span class="sr-only">过滤结果</span>
-              <input id="filter" type="search" placeholder="过滤结果">
+              <span class="sr-only" data-i18n="filter.label">过滤结果</span>
+              <input id="filter" type="search" placeholder="过滤结果" data-i18n-placeholder="filter.placeholder">
             </label>
-            <select id="status-filter" aria-label="状态筛选">
-              <option value="">全部状态</option>
+            <select id="status-filter" aria-label="状态筛选" data-i18n-aria-label="statusFilter.aria">
+              <option value="" data-i18n="statusFilter.all">全部状态</option>
               <option value="OK">OK</option>
               <option value="NO_ANSWER">NO_ANSWER</option>
               <option value="DNS_ERROR">DNS_ERROR</option>
@@ -186,11 +190,11 @@ a.b.c.d.e.f.g.example.com
             </select>
             <label class="privacy-toggle">
               <input id="privacy-mode" type="checkbox">
-              <span>截图隐私</span>
+              <span data-i18n="privacy.label">截图隐私</span>
             </label>
             <div class="export-actions">
-              <button id="export-json" class="ghost-button" type="button">导出 JSON</button>
-              <button id="export-csv" class="ghost-button" type="button">导出 CSV</button>
+              <button id="export-json" class="ghost-button" type="button" data-i18n="export.json">导出 JSON</button>
+              <button id="export-csv" class="ghost-button" type="button" data-i18n="export.csv">导出 CSV</button>
             </div>
           </div>
 
@@ -202,15 +206,15 @@ a.b.c.d.e.f.g.example.com
             <table>
               <thead>
                 <tr>
-                  <th>状态</th>
-                  <th>输入</th>
-                  <th>类型</th>
-                  <th>DNS</th>
-                  <th>协议</th>
-                  <th>RCODE</th>
-                  <th>结果</th>
-                  <th>位置</th>
-                  <th>运营商</th>
+                  <th data-i18n="table.status">状态</th>
+                  <th data-i18n="table.input">输入</th>
+                  <th data-i18n="table.type">类型</th>
+                  <th data-i18n="table.dns">DNS</th>
+                  <th data-i18n="table.protocol">协议</th>
+                  <th data-i18n="table.rcode">RCODE</th>
+                  <th data-i18n="table.result">结果</th>
+                  <th data-i18n="table.location">位置</th>
+                  <th data-i18n="table.operator">运营商</th>
                   <th>ms</th>
                 </tr>
               </thead>
@@ -222,14 +226,14 @@ a.b.c.d.e.f.g.example.com
         </section>
       </section>
 
-      <aside class="detail-sidebar surface" aria-label="结果详情">
+      <aside class="detail-sidebar surface" aria-label="结果详情" data-i18n-aria-label="detail.aria">
         <div class="detail-head">
           <div>
-            <p class="eyebrow">详情</p>
+            <p class="eyebrow" data-i18n="detail.eyebrow">详情</p>
             <h2 id="detail-title">未选择结果</h2>
             <p id="detail-subtitle">No selection</p>
           </div>
-          <button id="copy-detail" class="ghost-button" type="button" disabled>复制</button>
+          <button id="copy-detail" class="ghost-button" type="button" disabled data-i18n="actions.copy">复制</button>
         </div>
         <div id="detail-content" class="detail-content">No selection</div>
       </aside>

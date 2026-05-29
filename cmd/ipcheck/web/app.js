@@ -3,6 +3,260 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 const defaultTypes = ["A", "AAAA", "CNAME", "MX", "NS", "TXT", "SOA", "CAA", "SRV", "PTR", "HTTPS", "SVCB"];
 const storageKey = "ipcheck.gui.settings.v1";
+const defaultLanguage = "zh-CN";
+
+const messages = {
+  "zh-CN": {
+    "brand.eyebrow": "本地 DNS 工作台",
+    "language.aria": "语言 / Language",
+    "settings.eyebrow": "查询配置",
+    "settings.title": "解析请求",
+    "domains.title": "域名",
+    "actions.import": "导入",
+    "actions.appendRootDot": "补根点",
+    "dns.title": "DNS",
+    "dns.presetsAria": "DNS 预设",
+    "actions.add": "添加",
+    "records.title": "记录类型",
+    "records.subtitle": "默认 A / AAAA",
+    "records.customPlaceholder": "自定义 TYPE，如 HTTPS,SVCB,CAA",
+    "options.title": "参数",
+    "options.subtitle": "超时、重试、并发",
+    "options.timeout": "超时 ms",
+    "options.retries": "重试",
+    "options.concurrency": "并发",
+    "options.doh": "DoH",
+    "advanced.title": "高级选项",
+    "advanced.ipInfo": "IP 信息",
+    "advanced.strict": "严格域名",
+    "advanced.insecure": "跳过 TLS 校验",
+    "actions.resolve": "解析",
+    "actions.resolving": "解析中...",
+    "actions.cancel": "取消",
+    "actions.sample": "示例",
+    "actions.clear": "清空",
+    "actions.remove": "删除",
+    "actions.removeEndpoint": "移除",
+    "actions.copy": "复制",
+    "results.aria": "解析结果",
+    "summary.aria": "结果摘要",
+    "summary.total": "总计",
+    "summary.totalSmall": "条结果",
+    "summary.okSmall": "成功",
+    "summary.ipSmall": "含信息",
+    "summary.error": "错误",
+    "summary.errorSmall": "需关注",
+    "summary.duration": "耗时",
+    "results.eyebrow": "查询结果",
+    "results.title": "结果",
+    "view.aria": "结果视图",
+    "view.cards": "卡片",
+    "view.table": "表格",
+    "filter.label": "过滤结果",
+    "filter.placeholder": "过滤结果",
+    "statusFilter.aria": "状态筛选",
+    "statusFilter.all": "全部状态",
+    "privacy.label": "截图隐私",
+    "export.json": "导出 JSON",
+    "export.csv": "导出 CSV",
+    "table.status": "状态",
+    "table.input": "输入",
+    "table.type": "类型",
+    "table.dns": "DNS",
+    "table.protocol": "协议",
+    "table.rcode": "RCODE",
+    "table.result": "结果",
+    "table.location": "位置",
+    "table.operator": "运营商",
+    "detail.aria": "结果详情",
+    "detail.eyebrow": "详情",
+    "detail.emptyTitle": "未选择结果",
+    "detail.noSelection": "No selection",
+    "detail.fallbackTitle": "结果详情",
+    "detail.status": "状态",
+    "detail.input": "输入",
+    "detail.domain": "域名",
+    "detail.protocol": "协议",
+    "detail.result": "结果",
+    "detail.location": "位置",
+    "detail.operator": "运营商",
+    "detail.error": "错误",
+    "detail.recordName": "名称",
+    "detail.recordType": "类型",
+    "detail.recordTTL": "TTL",
+    "detail.recordData": "数据",
+    "detail.warnings": "警告",
+    "detail.ipInfo": "IP 信息",
+    "detail.source": "来源",
+    "health.ready": "Ready",
+    "health.offline": "Offline",
+    "health.resolving": "Resolving",
+    "health.done": "Done · {count}",
+    "health.canceled": "Canceled",
+    "health.copied": "Copied",
+    "validation.domainRequired": "请输入域名",
+    "validation.dnsRequired": "请添加 DNS",
+    "result.loading": "解析中...",
+    "result.complete": "解析完成",
+    "result.canceled": "已取消",
+    "result.copied": "已复制",
+    "result.copyFailed": "复制失败",
+    "empty.busyTitle": "解析中",
+    "empty.noMatchTitle": "没有匹配结果",
+    "empty.waitingTitle": "等待查询",
+    "empty.busySubtitle": "Resolving",
+    "empty.noMatchSubtitle": "No match",
+    "empty.readySubtitle": "Ready",
+    "answer.noAnswer": "无答案",
+    "answer.noRecordData": "无记录数据",
+    "answer.noData": "No data",
+    "count.domains": "{count} 个域名",
+    "count.endpoints": "{count} 个端点",
+    "meta.protocol": "协议",
+    "meta.location": "位置",
+    "meta.operator": "运营商",
+    "meta.warning": "警告"
+  },
+  en: {
+    "brand.eyebrow": "Local DNS Workspace",
+    "language.aria": "Language",
+    "settings.eyebrow": "Query Setup",
+    "settings.title": "Resolve Request",
+    "domains.title": "Domains",
+    "actions.import": "Import",
+    "actions.appendRootDot": "Add Root Dot",
+    "dns.title": "DNS",
+    "dns.presetsAria": "DNS presets",
+    "actions.add": "Add",
+    "records.title": "Record Types",
+    "records.subtitle": "Default A / AAAA",
+    "records.customPlaceholder": "Custom TYPE, e.g. HTTPS,SVCB,CAA",
+    "options.title": "Options",
+    "options.subtitle": "Timeout, retries, concurrency",
+    "options.timeout": "Timeout ms",
+    "options.retries": "Retries",
+    "options.concurrency": "Concurrency",
+    "options.doh": "DoH",
+    "advanced.title": "Advanced Options",
+    "advanced.ipInfo": "IP info",
+    "advanced.strict": "Strict domains",
+    "advanced.insecure": "Skip TLS verification",
+    "actions.resolve": "Resolve",
+    "actions.resolving": "Resolving...",
+    "actions.cancel": "Cancel",
+    "actions.sample": "Sample",
+    "actions.clear": "Clear",
+    "actions.remove": "Remove",
+    "actions.removeEndpoint": "Remove endpoint",
+    "actions.copy": "Copy",
+    "results.aria": "Resolve results",
+    "summary.aria": "Result summary",
+    "summary.total": "Total",
+    "summary.totalSmall": "results",
+    "summary.okSmall": "Success",
+    "summary.ipSmall": "With info",
+    "summary.error": "Errors",
+    "summary.errorSmall": "Needs attention",
+    "summary.duration": "Duration",
+    "results.eyebrow": "Query Results",
+    "results.title": "Results",
+    "view.aria": "Result view",
+    "view.cards": "Cards",
+    "view.table": "Table",
+    "filter.label": "Filter results",
+    "filter.placeholder": "Filter results",
+    "statusFilter.aria": "Status filter",
+    "statusFilter.all": "All statuses",
+    "privacy.label": "Screenshot privacy",
+    "export.json": "Export JSON",
+    "export.csv": "Export CSV",
+    "table.status": "Status",
+    "table.input": "Input",
+    "table.type": "Type",
+    "table.dns": "DNS",
+    "table.protocol": "Protocol",
+    "table.rcode": "RCODE",
+    "table.result": "Result",
+    "table.location": "Location",
+    "table.operator": "Operator",
+    "detail.aria": "Result details",
+    "detail.eyebrow": "Details",
+    "detail.emptyTitle": "No Result Selected",
+    "detail.noSelection": "No selection",
+    "detail.fallbackTitle": "Result details",
+    "detail.status": "Status",
+    "detail.input": "Input",
+    "detail.domain": "Domain",
+    "detail.protocol": "Protocol",
+    "detail.result": "Result",
+    "detail.location": "Location",
+    "detail.operator": "Operator",
+    "detail.error": "Error",
+    "detail.recordName": "Name",
+    "detail.recordType": "Type",
+    "detail.recordTTL": "TTL",
+    "detail.recordData": "Data",
+    "detail.warnings": "Warnings",
+    "detail.ipInfo": "IP info",
+    "detail.source": "Source",
+    "health.ready": "Ready",
+    "health.offline": "Offline",
+    "health.resolving": "Resolving",
+    "health.done": "Done · {count}",
+    "health.canceled": "Canceled",
+    "health.copied": "Copied",
+    "validation.domainRequired": "Enter at least one domain",
+    "validation.dnsRequired": "Add at least one DNS endpoint",
+    "result.loading": "Resolving...",
+    "result.complete": "Resolve complete",
+    "result.canceled": "Canceled",
+    "result.copied": "Copied",
+    "result.copyFailed": "Copy failed",
+    "empty.busyTitle": "Resolving",
+    "empty.noMatchTitle": "No Matching Results",
+    "empty.waitingTitle": "Waiting for Query",
+    "empty.busySubtitle": "Resolving",
+    "empty.noMatchSubtitle": "No match",
+    "empty.readySubtitle": "Ready",
+    "answer.noAnswer": "No answer",
+    "answer.noRecordData": "No record data",
+    "answer.noData": "No data",
+    "count.domains": "{count} domain{suffix}",
+    "count.endpoints": "{count} endpoint{suffix}",
+    "meta.protocol": "Protocol",
+    "meta.location": "Location",
+    "meta.operator": "Operator",
+    "meta.warning": "Warning"
+  }
+};
+
+const diagnosticTranslations = [
+  { pattern: /^JSON 请求解析失败: (.+)$/u, en: ([, reason]) => `Failed to parse JSON request: ${reason}` },
+  { pattern: /^请至少输入一个域名$/u, en: () => "Enter at least one domain" },
+  { pattern: /^查询类型为空$/u, en: () => "Query type is empty" },
+  { pattern: /^不支持的查询类型: (.+)$/u, en: ([, type]) => `Unsupported query type: ${type}` },
+  { pattern: /^不支持的输出格式: (.+)$/u, en: ([, format]) => `Unsupported output format: ${format}` },
+  { pattern: /^不支持的 DNS 协议: (.+)$/u, en: ([, protocol]) => `Unsupported DNS protocol: ${protocol}` },
+  { pattern: /^DNS endpoint 为空$/u, en: () => "DNS endpoint is empty" },
+  { pattern: /^DNS endpoint URL 解析失败: (.+)$/u, en: ([, reason]) => `Failed to parse DNS endpoint URL: ${reason}` },
+  { pattern: /^DNS endpoint 缺少 host: (.+)$/u, en: ([, endpoint]) => `DNS endpoint is missing a host: ${endpoint}` },
+  { pattern: /^域名为空$/u, en: () => "Domain is empty" },
+  { pattern: /^输入为空$/u, en: () => "Input is empty" },
+  { pattern: /^输入是 IP 地址，不是可查询的域名: (.+)$/u, en: ([, input]) => `Input is an IP address, not a queryable domain: ${input}` },
+  { pattern: /^域名包含连续的点，DNS 不允许空 label: (.+)$/u, en: ([, domain]) => `Domain contains consecutive dots; DNS does not allow empty labels: ${domain}` },
+  { pattern: /^域名包含空 label: (.+)$/u, en: ([, domain]) => `Domain contains an empty label: ${domain}` },
+  { pattern: /^域名 label 包含空白或控制字符: (.+)$/u, en: ([, label]) => `Domain label contains whitespace or control characters: ${label}` },
+  { pattern: /^域名 label 超过 63 字节: (.+)$/u, en: ([, label]) => `Domain label exceeds 63 bytes: ${label}` },
+  { pattern: /^完整域名超过 253 字符: (.+)$/u, en: ([, length]) => `Full domain exceeds 253 characters: ${length}` },
+  { pattern: /^URL 解析失败: (.+)$/u, en: ([, reason]) => `URL parse failed: ${reason}` },
+  { pattern: /^label (.+) 包含下划线；DNS 可查询，但它不是标准主机名 label$/u, en: ([, label]) => `Label ${label} contains an underscore; DNS can query it, but it is not a standard hostname label` },
+  { pattern: /^检测到通配符 label \*；将按字面 DNS 名称查询$/u, en: () => "Wildcard label * detected; it will be queried as a literal DNS name" },
+  { pattern: /^label (.+) 以连字符开头或结尾；DNS 可查询，但它不是标准主机名 label$/u, en: ([, label]) => `Label ${label} starts or ends with a hyphen; DNS can query it, but it is not a standard hostname label` },
+  { pattern: /^域名 label 包含不支持的字符 (.+): (.+)$/u, en: ([, char, label]) => `Domain label contains unsupported character ${char}: ${label}` },
+  { pattern: /^DoH 响应不是合法 DNS message: (.+)$/u, en: ([, reason]) => `DoH response is not a valid DNS message: ${reason}` },
+  { pattern: /^DNS message 超过 DoQ 2 字节长度限制: (.+)$/u, en: ([, length]) => `DNS message exceeds the DoQ 2-byte length limit: ${length}` },
+  { pattern: /^DoQ 响应不是合法 DNS message: (.+)$/u, en: ([, reason]) => `DoQ response is not a valid DNS message: ${reason}` }
+];
 
 const state = {
   results: [],
@@ -12,16 +266,20 @@ const state = {
   busy: false,
   viewMode: "cards",
   privacyMode: false,
+  language: defaultLanguage,
   toastTimer: 0
 };
 
 function init() {
+  state.language = savedLanguage();
+  applyLanguage(state.language, false);
   renderTypeGrid();
   restoreSettings();
   if (!$("#endpoint-list").children.length) {
     addEndpoint("udp://1.1.1.1:53", false);
   }
   bindEvents();
+  applyLanguage(state.language, false);
   updateDomainMeta();
   updateEndpointMeta();
   setViewMode(state.viewMode, false);
@@ -48,6 +306,10 @@ function bindEvents() {
   $("#domain-file").addEventListener("change", importFile);
   $("#domains").addEventListener("input", updateDomainMeta);
 
+  $$(".lang-button").forEach((button) => {
+    button.addEventListener("click", () => setLanguage(button.dataset.lang));
+  });
+
   $$(".preset-row button").forEach((button) => {
     button.addEventListener("click", () => addEndpoint(button.dataset.preset));
   });
@@ -60,13 +322,88 @@ function bindEvents() {
   document.body.addEventListener("input", debounce(saveSettings, 250));
 }
 
+function savedLanguage() {
+  const raw = localStorage.getItem(storageKey);
+  if (!raw) return defaultLanguage;
+  try {
+    const data = JSON.parse(raw);
+    return normalizeLanguage(data.language);
+  } catch {
+    return defaultLanguage;
+  }
+}
+
+function normalizeLanguage(language) {
+  const value = String(language || "").toLowerCase();
+  return value === "en" || value.startsWith("en-") ? "en" : defaultLanguage;
+}
+
+function setLanguage(language) {
+  applyLanguage(language);
+}
+
+function applyLanguage(language, persist = true) {
+  state.language = normalizeLanguage(language);
+  document.documentElement.lang = state.language;
+
+  $$("[data-i18n]").forEach((node) => {
+    node.textContent = t(node.dataset.i18n);
+  });
+  $$("[data-i18n-placeholder]").forEach((node) => {
+    node.setAttribute("placeholder", t(node.dataset.i18nPlaceholder));
+  });
+  $$("[data-i18n-aria-label]").forEach((node) => {
+    node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+  });
+  $$("[data-i18n-title]").forEach((node) => {
+    node.setAttribute("title", t(node.dataset.i18nTitle));
+  });
+
+  $$(".lang-button").forEach((button) => {
+    const active = normalizeLanguage(button.dataset.lang) === state.language;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  translateEndpointRows();
+  updateDomainMeta();
+  updateEndpointMeta();
+  setBusy(state.busy);
+  renderSummary();
+  renderResults();
+  renderDetail();
+
+  if (persist) saveSettings();
+}
+
+function translateEndpointRows() {
+  $$(".endpoint-row button").forEach((button) => {
+    button.textContent = t("actions.remove");
+    button.title = t("actions.removeEndpoint");
+  });
+}
+
+function t(key, params = {}) {
+  const template = (messages[state.language] && messages[state.language][key])
+    || messages[defaultLanguage][key]
+    || key;
+  return template.replace(/\{(\w+)\}/g, (_match, name) => {
+    if (name === "suffix" && params.suffix === undefined) return countSuffix(params.count);
+    return params[name] ?? "";
+  });
+}
+
+function countSuffix(count) {
+  return state.language === "en" && Number(count) !== 1 ? "s" : "";
+}
+
 async function ping() {
   try {
     const response = await fetch("/api/health");
     const data = await response.json();
     $("#health").textContent = `${data.status} · ${data.version}`;
   } catch {
-    $("#health").textContent = "Offline";
+    $("#health").textContent = t("health.offline");
   }
 }
 
@@ -86,7 +423,7 @@ function addEndpoint(value, persist = true) {
   row.innerHTML = `
     <span class="endpoint-protocol">${escapeHTML(endpointProtocol(value))}</span>
     <input class="endpoint-input" type="text" spellcheck="false" value="${escapeAttr(value)}" placeholder="udp://8.8.8.8:5353">
-    <button type="button" title="移除">删除</button>
+    <button type="button" title="${escapeAttr(t("actions.removeEndpoint"))}">${escapeHTML(t("actions.remove"))}</button>
   `;
 
   const input = row.querySelector(".endpoint-input");
@@ -131,21 +468,21 @@ async function runResolve() {
   clearResultMessage();
 
   if (!payload.domainText.trim()) {
-    setFormNotice("请输入域名", "error");
-    setHealth("请输入域名");
+    setFormNotice(t("validation.domainRequired"), "error");
+    setHealth(t("validation.domainRequired"));
     return;
   }
   if (!payload.dns.length) {
-    setFormNotice("请添加 DNS", "error");
-    setHealth("请添加 DNS");
+    setFormNotice(t("validation.dnsRequired"), "error");
+    setHealth(t("validation.dnsRequired"));
     return;
   }
 
   state.abort = new AbortController();
   state.busy = true;
   setBusy(true);
-  setHealth("Resolving");
-  setResultMessage("解析中...", "loading");
+  setHealth(t("health.resolving"));
+  setResultMessage(t("result.loading"), "loading");
   renderResults();
 
   try {
@@ -166,15 +503,16 @@ async function runResolve() {
     renderSummary();
     renderResults();
     renderDetail();
-    setHealth(`Done · ${state.results.length}`);
-    showToast("解析完成");
+    setHealth(t("health.done", { count: state.results.length }));
+    showToast(t("result.complete"));
   } catch (error) {
     if (error.name === "AbortError") {
-      setHealth("Canceled");
-      setResultMessage("已取消", "");
+      setHealth(t("health.canceled"));
+      setResultMessage(t("result.canceled"), "");
     } else {
-      setHealth(error.message);
-      setResultMessage(error.message, "error");
+      const message = localizeDiagnostic(error.message);
+      setHealth(message);
+      setResultMessage(message, "error");
     }
   } finally {
     state.busy = false;
@@ -220,8 +558,9 @@ function filteredRows() {
       return [
         item.input, item.domain, item.ascii, item.fqdn, item.type, item.resolver,
         item.resolverProtocol, item.transportProtocol, item.status, item.rcode,
-        answerText(item), locationText(item), operatorText(item), item.error,
-        (item.warnings || []).join(" ")
+        answerText(item), displayAnswerText(item), locationText(item), operatorText(item),
+        item.error, localizeDiagnostic(item.error), (item.warnings || []).join(" "),
+        displayWarnings(item.warnings)
       ].filter(Boolean).join(" ").toLowerCase().includes(query);
     });
 }
@@ -253,7 +592,7 @@ function resultCardHTML(item, index) {
   const rawAnswer = answerText(item);
   const selected = index === state.selected;
   const protocol = protocolForItem(item);
-  const warningText = (item.warnings || []).join("; ");
+  const warningText = displayWarnings(item.warnings);
   const answerValue = rawAnswer ? displayAnswerText(item) : emptyAnswerText(item);
   return `
     <button type="button" class="result-card ${selected ? "selected" : ""}" data-index="${index}" aria-pressed="${selected}">
@@ -268,11 +607,11 @@ function resultCardHTML(item, index) {
       <span class="answer-block ${rawAnswer ? "" : "is-empty"}">${escapeHTML(answerValue)}</span>
       <span class="result-meta">
         ${metaPill("DNS", displayEndpoint(item.resolver))}
-        ${metaPill("协议", protocol)}
+        ${metaPill(t("meta.protocol"), protocol)}
         ${metaPill("RCODE", item.rcode)}
-        ${metaPill("位置", locationText(item))}
-        ${metaPill("运营商", operatorText(item))}
-        ${metaPill("警告", warningText)}
+        ${metaPill(t("meta.location"), locationText(item))}
+        ${metaPill(t("meta.operator"), operatorText(item))}
+        ${metaPill(t("meta.warning"), warningText)}
       </span>
     </button>
   `;
@@ -322,31 +661,31 @@ function renderDetail() {
   const copyButton = $("#copy-detail");
 
   if (!item) {
-    $("#detail-title").textContent = "未选择结果";
-    $("#detail-subtitle").textContent = "No selection";
+    $("#detail-title").textContent = t("detail.emptyTitle");
+    $("#detail-subtitle").textContent = t("detail.noSelection");
     copyButton.disabled = true;
-    root.innerHTML = `<div class="empty-state"><div><h3>未选择结果</h3><p>No selection</p></div></div>`;
+    root.innerHTML = `<div class="empty-state"><div><h3>${escapeHTML(t("detail.emptyTitle"))}</h3><p>${escapeHTML(t("detail.noSelection"))}</p></div></div>`;
     return;
   }
 
-  $("#detail-title").textContent = displayDomain(item.input || item.domain || "结果详情");
+  $("#detail-title").textContent = displayDomain(item.input || item.domain || t("detail.fallbackTitle"));
   $("#detail-subtitle").textContent = [item.status, item.type, protocolForItem(item)].filter(Boolean).join(" · ");
   copyButton.disabled = false;
 
   root.innerHTML = `
     <dl class="detail-list">
-      ${detailItem("状态", statusBadge(item.status))}
-      ${detailItem("输入", displayDomain(item.input))}
-      ${detailItem("域名", displayDomain(item.domain))}
+      ${detailItem(t("detail.status"), statusBadge(item.status))}
+      ${detailItem(t("detail.input"), displayDomain(item.input))}
+      ${detailItem(t("detail.domain"), displayDomain(item.domain))}
       ${detailItem("ASCII", displayDomain(item.ascii))}
       ${detailItem("FQDN", displayDomain(item.fqdn))}
       ${detailItem("DNS", displayEndpoint(item.resolver))}
-      ${detailItem("协议", protocolForItem(item))}
+      ${detailItem(t("detail.protocol"), protocolForItem(item))}
       ${detailItem("RCODE", item.rcode)}
-      ${detailItem("结果", displayAnswerText(item) || emptyAnswerText(item))}
-      ${detailItem("位置", locationText(item))}
-      ${detailItem("运营商", operatorText(item))}
-      ${detailItem("错误", displaySensitive(item.error))}
+      ${detailItem(t("detail.result"), displayAnswerText(item) || emptyAnswerText(item))}
+      ${detailItem(t("detail.location"), locationText(item))}
+      ${detailItem(t("detail.operator"), operatorText(item))}
+      ${detailItem(t("detail.error"), displayDiagnostic(item.error))}
     </dl>
     ${warningsSection(item.warnings)}
     ${ipInfoSection(item.ipInfo)}
@@ -372,7 +711,7 @@ function recordSection(title, records, open) {
     <details class="detail-section" ${open ? "open" : ""}>
       <summary>${escapeHTML(title)} · ${records.length}</summary>
       <table>
-        <thead><tr><th>Name</th><th>Type</th><th>TTL</th><th>Data</th></tr></thead>
+        <thead><tr><th>${escapeHTML(t("detail.recordName"))}</th><th>${escapeHTML(t("detail.recordType"))}</th><th>${escapeHTML(t("detail.recordTTL"))}</th><th>${escapeHTML(t("detail.recordData"))}</th></tr></thead>
         <tbody>
           ${records.map((record) => `
             <tr>
@@ -392,8 +731,8 @@ function warningsSection(warnings) {
   if (!warnings || !warnings.length) return "";
   return `
     <details class="detail-section" open>
-      <summary>Warnings · ${warnings.length}</summary>
-      <div class="answer-block">${escapeHTML(displaySensitive(warnings.join("; ")))}</div>
+      <summary>${escapeHTML(t("detail.warnings"))} · ${warnings.length}</summary>
+      <div class="answer-block">${escapeHTML(displayWarnings(warnings))}</div>
     </details>
   `;
 }
@@ -402,9 +741,9 @@ function ipInfoSection(infos) {
   if (!infos || !infos.length) return "";
   return `
     <details class="detail-section" open>
-      <summary>IP 信息 · ${infos.length}</summary>
+      <summary>${escapeHTML(t("detail.ipInfo"))} · ${infos.length}</summary>
       <table>
-        <thead><tr><th>IP</th><th>位置</th><th>ASN</th><th>运营商</th><th>来源</th></tr></thead>
+        <thead><tr><th>IP</th><th>${escapeHTML(t("detail.location"))}</th><th>ASN</th><th>${escapeHTML(t("detail.operator"))}</th><th>${escapeHTML(t("detail.source"))}</th></tr></thead>
         <tbody>
           ${infos.map((info) => `
             <tr>
@@ -412,7 +751,7 @@ function ipInfoSection(infos) {
               <td>${escapeHTML(locationFromInfo(info))}</td>
               <td>${escapeHTML(info.asn || "")}</td>
               <td>${escapeHTML(info.isp || info.org || "")}</td>
-              <td>${escapeHTML(info.error || info.provider || "")}</td>
+              <td>${escapeHTML(info.error ? localizeDiagnostic(info.error) : info.provider || "")}</td>
             </tr>
           `).join("")}
         </tbody>
@@ -431,9 +770,9 @@ function answerText(item) {
 }
 
 function emptyAnswerText(item) {
-  if (item.status === "NO_ANSWER") return "无答案";
-  if (item.status === "OK") return "无记录数据";
-  return item.error || "No data";
+  if (item.status === "NO_ANSWER") return t("answer.noAnswer");
+  if (item.status === "OK") return t("answer.noRecordData");
+  return item.error ? displayDiagnostic(item.error) : t("answer.noData");
 }
 
 function locationText(item) {
@@ -451,7 +790,7 @@ function operatorText(item) {
 }
 
 function locationFromInfo(info) {
-  if (!info || info.error) return info && info.error ? info.error : "";
+  if (!info || info.error) return info && info.error ? localizeDiagnostic(info.error) : "";
   return [info.country, info.region, info.city].filter(Boolean).join(" / ");
 }
 
@@ -485,12 +824,33 @@ function displayIP(value) {
 }
 
 function displayAnswerText(item) {
-  return displaySensitive(answerText(item));
+  const text = answerText(item);
+  return text === item.error ? displayDiagnostic(text) : displaySensitive(text);
 }
 
 function displaySensitive(value) {
   if (value === undefined || value === null || value === "") return "";
   return state.privacyMode ? maskSensitiveText(value) : value;
+}
+
+function displayDiagnostic(value) {
+  if (value === undefined || value === null || value === "") return "";
+  return displaySensitive(localizeDiagnostic(value));
+}
+
+function displayWarnings(warnings) {
+  return (warnings || []).map(displayDiagnostic).filter(Boolean).join("; ");
+}
+
+function localizeDiagnostic(value) {
+  const text = String(value ?? "");
+  if (state.language !== "en" || !text) return text;
+
+  for (const rule of diagnosticTranslations) {
+    const match = text.match(rule.pattern);
+    if (match) return rule.en(match);
+  }
+  return text;
 }
 
 function displayResult(value) {
@@ -618,15 +978,20 @@ function emptyStateHTML() {
     <div class="empty-state">
       <div>
         <h3>${escapeHTML(emptyStateTitle())}</h3>
-        <p>${state.busy ? "Resolving" : state.results.length ? "No match" : "Ready"}</p>
+        <p>${escapeHTML(emptyStateSubtitle())}</p>
       </div>
     </div>
   `;
 }
 
 function emptyStateTitle() {
-  if (state.busy) return "解析中";
-  return state.results.length ? "没有匹配结果" : "等待查询";
+  if (state.busy) return t("empty.busyTitle");
+  return state.results.length ? t("empty.noMatchTitle") : t("empty.waitingTitle");
+}
+
+function emptyStateSubtitle() {
+  if (state.busy) return t("empty.busySubtitle");
+  return state.results.length ? t("empty.noMatchSubtitle") : t("empty.readySubtitle");
 }
 
 function setViewMode(mode, persist = true) {
@@ -648,18 +1013,18 @@ function setPrivacyMode(enabled, persist = true) {
 
 function updateDomainMeta() {
   const count = $("#domains").value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).length;
-  $("#domain-count").textContent = `${count} 个域名`;
+  $("#domain-count").textContent = t("count.domains", { count });
 }
 
 function updateEndpointMeta() {
   const count = $$(".endpoint-input").filter((input) => input.value.trim()).length;
-  $("#endpoint-count").textContent = `${count} 个端点`;
+  $("#endpoint-count").textContent = t("count.endpoints", { count });
 }
 
 function setBusy(busy) {
   state.busy = busy;
   $("#run").disabled = busy;
-  $("#run").textContent = busy ? "解析中..." : "解析";
+  $("#run").textContent = busy ? t("actions.resolving") : t("actions.resolve");
   $("#cancel").disabled = !busy;
 }
 
@@ -729,12 +1094,12 @@ function copySelected() {
   if (!item || !navigator.clipboard) return;
   navigator.clipboard.writeText(JSON.stringify(displayResult(item), null, 2))
     .then(() => {
-      setHealth("Copied");
-      showToast("已复制");
+      setHealth(t("health.copied"));
+      showToast(t("result.copied"));
     })
     .catch((error) => {
-      setHealth(error.message);
-      showToast("复制失败");
+      setHealth(localizeDiagnostic(error.message));
+      showToast(t("result.copyFailed"));
     });
 }
 
@@ -824,7 +1189,8 @@ function saveSettings() {
     dohMethod: $("#doh-method").value,
     insecure: $("#insecure").checked,
     viewMode: state.viewMode,
-    privacyMode: state.privacyMode
+    privacyMode: state.privacyMode,
+    language: state.language
   };
   localStorage.setItem(storageKey, JSON.stringify(data));
 }
@@ -852,6 +1218,7 @@ function restoreSettings() {
     $("#insecure").checked = Boolean(data.insecure);
     state.viewMode = data.viewMode === "table" ? "table" : "cards";
     state.privacyMode = Boolean(data.privacyMode);
+    state.language = normalizeLanguage(data.language);
   } catch {
     localStorage.removeItem(storageKey);
   }
