@@ -1,41 +1,68 @@
 # IP Check
 
-`ipcheck` is a DNS-to-IP resolver CLI focused on unusual domain inputs and fully custom DNS endpoints.
+[中文文档](README.zh-CN.md)
 
-It supports:
+`ipcheck` is a Go DNS resolver CLI with a local web GUI. It is built for checking
+how domains resolve through custom DNS endpoints, including uncommon inputs such
+as IDNs, explicit root-dot FQDNs, URLs, IPv6 endpoints, and deeply nested names.
 
-- Deep domain names with many dots, such as `a.b.c.d.e.f.example.com`
-- IDN domains, such as `例子.测试`
-- Explicit root-style FQDN input, such as `example.com.`
-- Custom DNS ports for every supported transport
-- UDP, TCP, DNS over TLS, DNS over HTTPS, and DNS over QUIC
-- Batch input, concurrent queries, JSON/CSV/table output
+The project currently ships as a Go command. The browser GUI is served by the
+same binary, so no Electron wrapper, Android project, or mobile build step is
+required.
 
-## Build
+## Features
 
-This workspace includes a local Go toolchain under `.tools/go`.
+- Resolve `A`, `AAAA`, `CNAME`, `MX`, `NS`, `TXT`, `SOA`, `CAA`, `SRV`, `PTR`,
+  `HTTPS`, and `SVCB` records
+- Query UDP, TCP, DNS over TLS, DNS over HTTPS, plain HTTP DoH-style endpoints,
+  and DNS over QUIC
+- Configure custom DNS hosts, ports, SNI, and TLS verification behavior
+- Normalize URLs, `host:port` values, IDN domains, and root-dot FQDN input
+- Run batch queries with configurable timeout, retries, and concurrency
+- Export CLI results as table, JSON, or CSV
+- Use a local web GUI with filtering, details, JSON/CSV export, and optional IP
+  location/ASN/operator enrichment from `ipapi.co`
 
-```bash
-PATH="$PWD/.tools/go/bin:$PATH" go build -o bin/ipcheck ./cmd/ipcheck
-```
+## Build And Test
 
-Run tests:
+This workspace includes a local Go toolchain under `.tools/go`. Use it when you
+want the exact toolchain expected by this repository:
 
 ```bash
 PATH="$PWD/.tools/go/bin:$PATH" go test ./...
+PATH="$PWD/.tools/go/bin:$PATH" go build -o bin/ipcheck ./cmd/ipcheck
 ```
 
-## Basic Usage
+If your system Go version matches `go.mod`, the regular `go` command works too:
+
+```bash
+go test ./...
+go build -o bin/ipcheck ./cmd/ipcheck
+```
+
+## CLI Usage
 
 ```bash
 ./bin/ipcheck example.com
 ./bin/ipcheck --type A example.com
-./bin/ipcheck --type A,AAAA example.com
+./bin/ipcheck --type A,AAAA --dns udp://1.1.1.1:53 example.com
 ```
 
-## GUI
+Batch input:
 
-Start the local GUI:
+```bash
+./bin/ipcheck --input domains.txt --dns udp://8.8.8.8:53 --format csv
+```
+
+JSON output with IP enrichment:
+
+```bash
+./bin/ipcheck --dns https://dns.google/dns-query --format json --ip-info example.com
+```
+
+## Local GUI
+
+Start the GUI server:
 
 ```bash
 ./bin/ipcheck serve --addr 127.0.0.1:8765
@@ -47,53 +74,18 @@ Open:
 http://127.0.0.1:8765
 ```
 
-The GUI uses the same resolver core as the CLI and supports the same endpoint formats, custom ports, query types, EDNS0, DNSSEC, DoH method selection, strict domain validation, TLS verification options, batch input, result details, and JSON/CSV export.
-
-When IP information is enabled, resolved IPs are enriched with location, ASN, and operator/organization data from `ipapi.co`.
-
-## Linux Desktop App
-
-GitHub Actions also builds an Electron desktop wrapper for Linux:
-
-```text
-Actions -> Desktop Linux -> artifact: ipcheck-linux-desktop
-```
-
-The desktop package starts the embedded `ipcheck` backend automatically and opens the GUI in an application window. No terminal command or browser step is needed after launching the AppImage/deb package.
-
-Local development:
+You can also ask the command to open the browser:
 
 ```bash
-PATH="$PWD/.tools/go/bin:$PATH" go build -o bin/ipcheck ./cmd/ipcheck
-cd desktop/electron
-npm ci
-npm start
+./bin/ipcheck serve --addr 127.0.0.1:8765 --open
 ```
 
-## Android
+The GUI uses the same resolver core as the CLI. It supports the same endpoint
+formats, query types, EDNS0, DNSSEC, DoH method selection, strict validation,
+TLS debugging options, batch input, result details, filtering, and JSON/CSV
+export.
 
-The Android app is built from the same Web GUI and a Go mobile AAR bridge.
-
-GitHub Actions builds a debug APK on each push:
-
-```text
-Actions -> Android -> artifact: ipcheck-android-debug-apk
-```
-
-The workflow:
-
-1. Installs Go, Java, Android SDK, Gradle, and gomobile.
-2. Builds `pkg/mobilecore` into `android/app/libs/ipcheckcore.aar`.
-3. Builds `android/app/build/outputs/apk/debug/app-debug.apk`.
-4. Uploads the APK as a GitHub Actions artifact.
-
-The local downloaded APK, when present, is ignored by git:
-
-```text
-dist/android/app-debug.apk
-```
-
-## Custom DNS Endpoints
+## DNS Endpoints
 
 Every protocol supports explicit ports:
 
@@ -111,16 +103,6 @@ IPv6 DNS endpoints are supported:
 ./bin/ipcheck --dns udp://[2606:4700:4700::1111]:5353 example.com
 ```
 
-If no port is provided, protocol defaults are used:
-
-| Protocol | Default Port |
-| --- | --- |
-| UDP | 53 |
-| TCP | 53 |
-| DoT | 853 |
-| DoH | 443 |
-| DoQ | 853 |
-
 Supported endpoint schemes:
 
 | Scheme | Meaning |
@@ -132,55 +114,37 @@ Supported endpoint schemes:
 | `http://` | DNS over plain HTTP |
 | `quic://` or `doq://` | DNS over QUIC |
 
-## Examples
+Default ports:
 
-Compare multiple DNS transports:
+| Protocol | Default Port |
+| --- | --- |
+| UDP | 53 |
+| TCP | 53 |
+| DoT | 853 |
+| DoH | 443 |
+| DoQ | 853 |
 
-```bash
-./bin/ipcheck \
-  --dns udp://1.1.1.1:53 \
-  --dns tcp://1.1.1.1:53 \
-  --dns tls://1.1.1.1:853 \
-  --dns https://cloudflare-dns.com:443/dns-query \
-  --type A,AAAA \
-  example.com
-```
-
-Use DoH GET:
+Examples with DoH GET, custom SNI, and insecure TLS debugging:
 
 ```bash
 ./bin/ipcheck --dns https://dns.google:443/dns-query --doh-method GET example.com
-```
-
-Custom SNI or certificate debugging:
-
-```bash
 ./bin/ipcheck --dns 'tls://1.1.1.1:853?sni=cloudflare-dns.com' example.com
 ./bin/ipcheck --dns 'https://1.1.1.1:443/dns-query?sni=cloudflare-dns.com' example.com
 ./bin/ipcheck --dns 'tls://127.0.0.1:1853?insecure=1' example.com
 ```
 
-Batch mode:
-
-```bash
-./bin/ipcheck --input domains.txt --dns udp://8.8.8.8:53 --format csv
-```
-
-JSON output:
-
-```bash
-./bin/ipcheck --dns https://dns.google/dns-query --format json example.com
-```
-
 ## Domain Handling
 
-The resolver normalizes input before querying:
+Before querying, `ipcheck` normalizes domain input:
 
-- URLs are reduced to their host, for example `https://example.com/path` becomes `example.com`
-- Ports are stripped from domain input, for example `example.com:443` becomes `example.com`
+- URLs are reduced to their host, such as `https://example.com/path` to
+  `example.com`
+- Ports are stripped from domain input, such as `example.com:443` to
+  `example.com`
 - IDN names are converted to Punycode
 - A trailing root dot is accepted
-- Many-dot domains are accepted if each label and the full DNS name fit DNS size limits
+- Many-dot domains are accepted when every label and the full DNS name fit DNS
+  size limits
 
 Invalid examples:
 
@@ -189,11 +153,13 @@ a..b.com
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com
 ```
 
-`a..b.com` is rejected because DNS names cannot contain an empty label between two dots. A 64-byte label is rejected because the DNS limit is 63 bytes per label.
+`a..b.com` is rejected because DNS names cannot contain an empty label between
+two dots. A 64-byte label is rejected because the DNS label limit is 63 bytes.
 
-By default, underscore labels such as `_sip._tcp.example.com` are allowed with a warning. Use `--strict` to enforce hostname-style labels.
+By default, underscore labels such as `_sip._tcp.example.com` are allowed with a
+warning. Use `--strict` to enforce hostname-style labels.
 
-## Useful Options
+## Options
 
 ```text
 --dns ENDPOINT             DNS endpoint; repeatable or comma-separated
@@ -209,8 +175,29 @@ By default, underscore labels such as `_sip._tcp.example.com` are allowed with a
 --doh-method POST|GET      DoH method
 --insecure-skip-verify     Skip TLS verification for debugging
 --ip-info                  Enrich resolved IPs with location, ASN, and operator data
+--version                  Print version
+--examples                 Print CLI examples
 ```
+
+## Project Layout
+
+```text
+cmd/ipcheck/          CLI entry point and local GUI server
+cmd/ipcheck/web/      Embedded web GUI assets
+internal/domain/      Domain normalization and validation
+internal/endpoint/    DNS endpoint parsing
+internal/resolver/    DNS query and response parsing
+internal/ipinfo/      Optional IP metadata lookup
+```
+
+## CI
+
+GitHub Actions runs tests, vet, and a Linux CLI build. The workflow uploads the
+plain `ipcheck` binary artifact; desktop and mobile packaging are intentionally
+outside the current project scope.
 
 ## Notes
 
-DoQ uses QUIC over UDP, so it can be blocked by firewalls or networks that allow TCP/TLS/HTTPS but block UDP port 853. In that case the tool will report a transport timeout while UDP/TCP/DoH/DoT may still work.
+DNS over QUIC uses UDP, so it can be blocked by networks that allow TCP, TLS, or
+HTTPS but block UDP port 853. In that case `ipcheck` will report a transport
+timeout while UDP, TCP, DoH, or DoT checks may still work.

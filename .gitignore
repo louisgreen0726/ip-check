@@ -2,9 +2,3 @@
 bin/
 dist/
 *.log
-android/.gradle/
-android/build/
-android/app/build/
-android/app/libs/*.aar
-desktop/electron/node_modules/
-desktop/electron/dist/
