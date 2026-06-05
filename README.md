@@ -62,19 +62,19 @@ JSON output with IP enrichment:
 
 ## Local GUI
 
-Start the GUI server:
+Start the GUI and open the browser:
 
 ```bash
-./bin/ipcheck serve --addr 127.0.0.1:8765
+./bin/ipcheck
 ```
 
-Open:
+The default local URL is:
 
 ```text
 http://127.0.0.1:8765
 ```
 
-You can also ask the command to open the browser:
+Use `serve` when you want to customize the listening address:
 
 ```bash
 ./bin/ipcheck serve --addr 127.0.0.1:8765 --open

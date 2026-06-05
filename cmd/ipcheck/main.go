@@ -96,6 +96,9 @@ func main() {
 }
 
 func run(args []string, stdout, stderr io.Writer, stdin *os.File) error {
+	if shouldLaunchGUIByDefault(args, stdin) {
+		return runServer([]string{"--open"}, stdout, stderr)
+	}
 	if len(args) > 0 && args[0] == "serve" {
 		return runServer(args[1:], stdout, stderr)
 	}
@@ -163,6 +166,17 @@ func run(args []string, stdout, stderr io.Writer, stdin *os.File) error {
 	default:
 		return fmt.Errorf("不支持的输出格式: %s", opts.format)
 	}
+}
+
+func shouldLaunchGUIByDefault(args []string, stdin *os.File) bool {
+	if len(args) != 0 {
+		return false
+	}
+	if stdin == nil {
+		return true
+	}
+	stat, err := stdin.Stat()
+	return err != nil || (stat.Mode()&os.ModeCharDevice) != 0
 }
 
 func parseFlags(args []string, stderr io.Writer) (cliOptions, []string) {

@@ -54,19 +54,19 @@ JSON 输出并补充 IP 信息：
 
 ## 本地 GUI
 
-启动 GUI 服务：
+启动 GUI 并自动打开浏览器：
 
 ```bash
-./bin/ipcheck serve --addr 127.0.0.1:8765
+./bin/ipcheck
 ```
 
-打开：
+默认本地地址是：
 
 ```text
 http://127.0.0.1:8765
 ```
 
-也可以让命令自动打开浏览器：
+如果需要自定义监听地址，可以使用 `serve`：
 
 ```bash
 ./bin/ipcheck serve --addr 127.0.0.1:8765 --open
