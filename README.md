@@ -192,9 +192,9 @@ internal/ipinfo/      Optional IP metadata lookup
 
 ## CI
 
-GitHub Actions runs tests, vet, and a Linux CLI build. The workflow uploads the
-plain `ipcheck` binary artifact; desktop and mobile packaging are intentionally
-outside the current project scope.
+GitHub Actions runs tests and vet, then uploads binary artifacts for
+`linux-amd64`, `linux-arm64`, `windows-amd64`, and `windows-arm64`. Desktop and
+mobile packaging are intentionally outside the current project scope.
 
 ## Notes
 

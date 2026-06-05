@@ -176,7 +176,7 @@ internal/ipinfo/      可选的 IP 元数据查询
 
 ## CI
 
-GitHub Actions 会运行测试、vet 和 Linux CLI 构建。当前 workflow 只上传普通的 `ipcheck` 二进制文件；桌面端和移动端打包不属于当前项目范围。
+GitHub Actions 会运行测试和 vet，然后上传 `linux-amd64`、`linux-arm64`、`windows-amd64`、`windows-arm64` 的二进制产物。桌面端和移动端打包不属于当前项目范围。
 
 ## 说明
 

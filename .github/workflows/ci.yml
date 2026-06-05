@@ -28,11 +28,51 @@ jobs:
       - name: Vet
         run: go vet ./...
 
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-amd64
+            goos: linux
+            goarch: amd64
+            binary: ipcheck
+          - target: linux-arm64
+            goos: linux
+            goarch: arm64
+            binary: ipcheck
+          - target: windows-amd64
+            goos: windows
+            goarch: amd64
+            binary: ipcheck.exe
+          - target: windows-arm64
+            goos: windows
+            goarch: arm64
+            binary: ipcheck.exe
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
       - name: Build
-        run: go build -o dist/ipcheck ./cmd/ipcheck
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p "dist/${{ matrix.target }}"
+          go build -o "dist/${{ matrix.target }}/${{ matrix.binary }}" ./cmd/ipcheck
 
       - name: Upload binary
         uses: actions/upload-artifact@v5
         with:
-          name: ipcheck-linux-amd64
-          path: dist/ipcheck
+          name: ipcheck-${{ matrix.target }}
+          path: dist/${{ matrix.target }}/${{ matrix.binary }}
