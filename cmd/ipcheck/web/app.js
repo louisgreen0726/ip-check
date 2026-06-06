@@ -73,6 +73,13 @@ const messages = {
     "detail.emptyTitle": "未选择结果",
     "detail.noSelection": "No selection",
     "detail.fallbackTitle": "结果详情",
+    "detail.overview": "概览",
+    "detail.identity": "域名信息",
+    "detail.response": "响应信息",
+    "detail.raw": "原始 JSON",
+    "detail.answerSection": "答案记录",
+    "detail.authoritySection": "权威记录",
+    "detail.additionalSection": "附加记录",
     "detail.status": "状态",
     "detail.input": "输入",
     "detail.domain": "域名",
@@ -184,6 +191,13 @@ const messages = {
     "detail.emptyTitle": "No Result Selected",
     "detail.noSelection": "No selection",
     "detail.fallbackTitle": "Result details",
+    "detail.overview": "Overview",
+    "detail.identity": "Domain Info",
+    "detail.response": "Response Details",
+    "detail.raw": "Raw JSON",
+    "detail.answerSection": "Answer Records",
+    "detail.authoritySection": "Authority Records",
+    "detail.additionalSection": "Additional Records",
     "detail.status": "Status",
     "detail.input": "Input",
     "detail.domain": "Domain",
@@ -613,6 +627,7 @@ function resultCardHTML(item, index) {
         ${metaPill(t("meta.operator"), operatorText(item))}
         ${metaPill(t("meta.warning"), warningText)}
       </span>
+      ${item.warnings && item.warnings.length ? `<span class="result-warning-badge">${escapeHTML(t("meta.warning"))} · ${item.warnings.length}</span>` : ""}
     </button>
   `;
 }
@@ -668,34 +683,64 @@ function renderDetail() {
     return;
   }
 
-  $("#detail-title").textContent = displayDomain(item.input || item.domain || t("detail.fallbackTitle"));
-  $("#detail-subtitle").textContent = [item.status, item.type, protocolForItem(item)].filter(Boolean).join(" · ");
+  const title = displayDomain(item.input || item.domain || t("detail.fallbackTitle"));
+  const subtitle = [item.status, item.type, protocolForItem(item)].filter(Boolean).join(" · ");
+  const answerValue = displayAnswerText(item) || emptyAnswerText(item);
+
+  $("#detail-title").textContent = title;
+  $("#detail-subtitle").textContent = subtitle;
   copyButton.disabled = false;
 
   root.innerHTML = `
-    <dl class="detail-list">
-      ${detailItem(t("detail.status"), statusBadge(item.status))}
-      ${detailItem(t("detail.input"), displayDomain(item.input))}
-      ${detailItem(t("detail.domain"), displayDomain(item.domain))}
-      ${detailItem("ASCII", displayDomain(item.ascii))}
-      ${detailItem("FQDN", displayDomain(item.fqdn))}
-      ${detailItem("DNS", displayEndpoint(item.resolver))}
-      ${detailItem(t("detail.protocol"), protocolForItem(item))}
-      ${detailItem("RCODE", item.rcode)}
-      ${detailItem(t("detail.result"), displayAnswerText(item) || emptyAnswerText(item))}
-      ${detailItem(t("detail.location"), locationText(item))}
-      ${detailItem(t("detail.operator"), operatorText(item))}
-      ${detailItem(t("detail.error"), displayDiagnostic(item.error))}
-    </dl>
-    ${warningsSection(item.warnings)}
-    ${ipInfoSection(item.ipInfo)}
-    ${recordSection("Answer", item.answer, true)}
-    ${recordSection("Authority", item.authority, false)}
-    ${recordSection("Additional", item.additional, false)}
-    <details class="detail-section">
-      <summary>JSON</summary>
-      <pre>${escapeHTML(JSON.stringify(displayResult(item), null, 2))}</pre>
-    </details>
+    <div class="detail-stack">
+      <section class="detail-panel detail-panel-hero">
+        <div class="detail-panel-head">
+          <div>
+            <p class="eyebrow">${escapeHTML(t("detail.overview"))}</p>
+            <h3>${escapeHTML(title)}</h3>
+            <p class="detail-panel-subtitle">${escapeHTML(subtitle || t("detail.fallbackTitle"))}</p>
+          </div>
+        </div>
+        <div class="detail-chip-row">
+          ${statusBadge(item.status)}
+          ${metaPill("TYPE", item.type)}
+          ${metaPill(t("detail.protocol"), protocolForItem(item))}
+          ${metaPill("RCODE", item.rcode)}
+          ${metaPill(t("summary.duration"), `${Number(item.durationMs || 0)} ms`)}
+        </div>
+        <div class="detail-answer-block">
+          <span class="detail-answer-label">${escapeHTML(t("detail.result"))}</span>
+          <div class="answer-block ${answerText(item) ? "" : "is-empty"}">${escapeHTML(answerValue)}</div>
+        </div>
+        ${item.error ? `<div class="detail-alert">${escapeHTML(displayDiagnostic(item.error))}</div>` : ""}
+      </section>
+
+      <section class="detail-panel">
+        <div class="detail-panel-head">
+          <div>
+            <p class="eyebrow">${escapeHTML(t("detail.identity"))}</p>
+            <h3>${escapeHTML(t("detail.domain"))}</h3>
+          </div>
+        </div>
+        <dl class="detail-list">
+          ${detailItem(t("detail.input"), displayDomain(item.input))}
+          ${detailItem(t("detail.domain"), displayDomain(item.domain))}
+          ${detailItem("ASCII", displayDomain(item.ascii))}
+          ${detailItem("FQDN", displayDomain(item.fqdn))}
+          ${detailItem("DNS", displayEndpoint(item.resolver))}
+          ${detailItem(t("detail.protocol"), protocolForItem(item))}
+          ${detailItem("RCODE", item.rcode)}
+          ${detailItem(t("summary.duration"), item.durationMs ? `${Number(item.durationMs)} ms` : "")}
+        </dl>
+      </section>
+
+      ${warningsSection(item.warnings)}
+      ${ipInfoSection(item.ipInfo)}
+      ${recordSection(t("detail.answerSection"), item.answer, true)}
+      ${recordSection(t("detail.authoritySection"), item.authority, false)}
+      ${recordSection(t("detail.additionalSection"), item.additional, false)}
+      ${rawSection(item)}
+    </div>
   `;
 }
 
@@ -730,32 +775,60 @@ function recordSection(title, records, open) {
 function warningsSection(warnings) {
   if (!warnings || !warnings.length) return "";
   return `
-    <details class="detail-section" open>
-      <summary>${escapeHTML(t("detail.warnings"))} · ${warnings.length}</summary>
-      <div class="answer-block">${escapeHTML(displayWarnings(warnings))}</div>
-    </details>
+    <section class="detail-panel">
+      <div class="detail-panel-head">
+        <div>
+          <p class="eyebrow">${escapeHTML(t("detail.warnings"))}</p>
+          <h3>${escapeHTML(t("detail.warnings"))}</h3>
+        </div>
+        <span class="detail-count">${warnings.length}</span>
+      </div>
+      <ul class="detail-note-list">
+        ${warnings.map((warning) => `<li>${escapeHTML(displayDiagnostic(warning))}</li>`).join("")}
+      </ul>
+    </section>
   `;
 }
 
 function ipInfoSection(infos) {
   if (!infos || !infos.length) return "";
   return `
-    <details class="detail-section" open>
-      <summary>${escapeHTML(t("detail.ipInfo"))} · ${infos.length}</summary>
-      <table>
-        <thead><tr><th>IP</th><th>${escapeHTML(t("detail.location"))}</th><th>ASN</th><th>${escapeHTML(t("detail.operator"))}</th><th>${escapeHTML(t("detail.source"))}</th></tr></thead>
-        <tbody>
-          ${infos.map((info) => `
-            <tr>
-              <td>${escapeHTML(displayIP(info.ip || ""))}</td>
-              <td>${escapeHTML(locationFromInfo(info))}</td>
-              <td>${escapeHTML(info.asn || "")}</td>
-              <td>${escapeHTML(info.isp || info.org || "")}</td>
-              <td>${escapeHTML(info.error ? localizeDiagnostic(info.error) : info.provider || "")}</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
+    <section class="detail-panel">
+      <div class="detail-panel-head">
+        <div>
+          <p class="eyebrow">${escapeHTML(t("detail.ipInfo"))}</p>
+          <h3>${escapeHTML(t("detail.ipInfo"))}</h3>
+        </div>
+        <span class="detail-count">${infos.length}</span>
+      </div>
+      <div class="detail-ip-list">
+        ${infos.map((info) => `
+          <article class="detail-ip-row">
+            <div class="detail-ip-main">
+              <strong>${escapeHTML(displayIP(info.ip || ""))}</strong>
+              <span>${escapeHTML(locationFromInfo(info) || t("answer.noData"))}</span>
+            </div>
+            <div class="detail-chip-row detail-chip-row-tight">
+              ${metaPill("ASN", info.asn)}
+              ${metaPill(t("detail.operator"), info.isp || info.org)}
+              ${metaPill(t("detail.source"), info.provider || "")}
+              ${info.error ? metaPill(t("meta.warning"), localizeDiagnostic(info.error)) : ""}
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function rawSection(item) {
+  return `
+    <details class="detail-section">
+      <summary>
+        <span class="detail-summary-title">${escapeHTML(t("detail.raw"))}</span>
+        <span class="detail-summary-meta">JSON</span>
+      </summary>
+      <pre>${escapeHTML(JSON.stringify(displayResult(item), null, 2))}</pre>
     </details>
   `;
 }
@@ -784,13 +857,14 @@ function locationText(item) {
 
 function operatorText(item) {
   return (item.ipInfo || [])
+    .filter((info) => !info.error)
     .map((info) => [info.asn, info.isp || info.org].filter(Boolean).join(" "))
     .filter(Boolean)
     .join("; ");
 }
 
 function locationFromInfo(info) {
-  if (!info || info.error) return info && info.error ? localizeDiagnostic(info.error) : "";
+  if (!info || info.error) return "";
   return [info.country, info.region, info.city].filter(Boolean).join(" / ");
 }
 

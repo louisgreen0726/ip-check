@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/netip"
 	"os"
 	"sort"
 	"strings"
@@ -22,7 +23,7 @@ import (
 	"ipcheck/internal/resolver"
 )
 
-const version = "0.1.0"
+const version = "0.1.1"
 
 type stringList []string
 
@@ -364,6 +365,7 @@ func resolveOne(ctx context.Context, t task, opts resolver.Options) result {
 	base.Answer = parsed.Answer
 	base.Authority = parsed.Authority
 	base.Additional = parsed.Additional
+	base.Warnings = mergeWarnings(base.Warnings, specialIPWarnings(base.IPs))
 
 	if parsed.RCode != "NOERROR" {
 		base.Status = "DNS_ERROR"
@@ -471,6 +473,157 @@ func enrichIPInfo(ctx context.Context, results []result) {
 			}
 		}
 	}
+}
+
+func specialIPWarnings(ips []string) []string {
+	warnings := make([]string, 0)
+	specialCount := 0
+	labels := make([]string, 0, len(ips))
+	for _, raw := range ips {
+		label := specialIPLabel(raw)
+		if label == "" {
+			labels = append(labels, "")
+			continue
+		}
+		specialCount++
+		labels = append(labels, label)
+	}
+
+	if len(ips) > 0 && specialCount == len(ips) {
+		parts := make([]string, 0, len(ips))
+		for i, raw := range ips {
+			parts = append(parts, fmt.Sprintf("%s（%s）", raw, labels[i]))
+		}
+		warnings = append(warnings, "所有返回地址都是特殊用途地址，结果看起来像保底/拦截响应："+strings.Join(parts, "；"))
+		return warnings
+	}
+
+	seen := map[string]struct{}{}
+	for i, raw := range ips {
+		label := labels[i]
+		if label == "" {
+			continue
+		}
+		warning := fmt.Sprintf("返回了特殊用途地址 %s（%s）", raw, label)
+		if _, ok := seen[warning]; ok {
+			continue
+		}
+		seen[warning] = struct{}{}
+		warnings = append(warnings, warning)
+	}
+	return warnings
+}
+
+func specialIPLabel(raw string) string {
+	addr, err := netip.ParseAddr(strings.TrimSpace(raw))
+	if err != nil || !addr.IsValid() {
+		return ""
+	}
+
+	if addr.Is4() {
+		if addr.IsUnspecified() {
+			return "未指定地址"
+		}
+		if addr.IsLoopback() {
+			return "回环地址"
+		}
+		if addr.IsPrivate() {
+			return "私有地址"
+		}
+		if addr.IsLinkLocalUnicast() {
+			return "链路本地地址"
+		}
+		if addr.IsMulticast() {
+			return "组播地址"
+		}
+		if label := matchSpecialPrefix(addr, ipv4SpecialPrefixes); label != "" {
+			return label
+		}
+		return ""
+	}
+
+	if addr.IsUnspecified() {
+		return "未指定地址"
+	}
+	if addr.IsLoopback() {
+		return "回环地址"
+	}
+	if addr.IsPrivate() {
+		return "ULA 私有地址"
+	}
+	if addr.IsLinkLocalUnicast() {
+		return "链路本地地址"
+	}
+	if addr.IsMulticast() {
+		return "组播地址"
+	}
+	if label := matchSpecialPrefix(addr, ipv6SpecialPrefixes); label != "" {
+		return label
+	}
+	return ""
+}
+
+func matchSpecialPrefix(addr netip.Addr, prefixes []specialPrefix) string {
+	for _, candidate := range prefixes {
+		if candidate.prefix.Contains(addr) {
+			return candidate.label
+		}
+	}
+	return ""
+}
+
+func mergeWarnings(groups ...[]string) []string {
+	seen := map[string]struct{}{}
+	out := make([]string, 0)
+	for _, group := range groups {
+		for _, warning := range group {
+			warning = strings.TrimSpace(warning)
+			if warning == "" {
+				continue
+			}
+			if _, ok := seen[warning]; ok {
+				continue
+			}
+			seen[warning] = struct{}{}
+			out = append(out, warning)
+		}
+	}
+	return out
+}
+
+type specialPrefix struct {
+	prefix netip.Prefix
+	label  string
+}
+
+var ipv4SpecialPrefixes = []specialPrefix{
+	mustPrefix("0.0.0.0/8", "保留地址"),
+	mustPrefix("100.64.0.0/10", "共享地址空间"),
+	mustPrefix("169.254.0.0/16", "链路本地地址"),
+	mustPrefix("192.0.0.0/24", "IETF 协议分配段"),
+	mustPrefix("192.0.0.0/29", "IPv4 服务连续性前缀"),
+	mustPrefix("192.0.0.8/32", "IPv4 dummy 地址"),
+	mustPrefix("192.0.0.9/32", "PCP anycast"),
+	mustPrefix("192.0.0.10/32", "TURN anycast"),
+	mustPrefix("192.0.0.170/31", "NAT64/DNS64 发现地址"),
+	mustPrefix("192.0.2.0/24", "文档测试地址"),
+	mustPrefix("192.88.99.0/24", "弃用的 6to4 relay"),
+	mustPrefix("198.18.0.0/15", "基准测试地址"),
+	mustPrefix("198.51.100.0/24", "文档测试地址"),
+	mustPrefix("203.0.113.0/24", "文档测试地址"),
+	mustPrefix("240.0.0.0/4", "保留地址"),
+}
+
+var ipv6SpecialPrefixes = []specialPrefix{
+	mustPrefix("2001:db8::/32", "文档测试地址"),
+}
+
+func mustPrefix(raw, label string) specialPrefix {
+	prefix, err := netip.ParsePrefix(raw)
+	if err != nil {
+		panic(err)
+	}
+	return specialPrefix{prefix: prefix.Masked(), label: label}
 }
 
 func ipLocationsInline(infos []ipinfo.Info) string {

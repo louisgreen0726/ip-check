@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strings"
 	"sync"
@@ -77,8 +78,8 @@ func (c *Client) Lookup(ctx context.Context, ip string) Info {
 	if parsed == nil {
 		return Info{IP: ip, Provider: c.provider(), Error: "invalid IP"}
 	}
-	if parsed.IsPrivate() || parsed.IsLoopback() || parsed.IsUnspecified() || parsed.IsMulticast() {
-		return Info{IP: ip, Provider: c.provider(), Error: "private or non-routable IP"}
+	if reason := specialUseIPReason(ip); reason != "" {
+		return Info{IP: ip, Provider: c.provider(), Error: reason}
 	}
 
 	if cached, ok := c.getCached(ip); ok {
@@ -101,7 +102,7 @@ func (c *Client) Lookup(ctx context.Context, ip string) Info {
 		return Info{IP: ip, Provider: c.provider(), Error: err.Error()}
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "ipcheck/0.1")
+	req.Header.Set("User-Agent", "ipcheck/0.1.1")
 
 	client := c.HTTPClient
 	if client == nil {
@@ -224,4 +225,57 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func specialUseIPReason(raw string) string {
+	addr, err := netip.ParseAddr(strings.TrimSpace(raw))
+	if err != nil || !addr.IsValid() {
+		return "invalid IP"
+	}
+	if addr.IsLoopback() || addr.IsUnspecified() || addr.IsMulticast() || addr.IsLinkLocalUnicast() {
+		return "private or non-routable IP"
+	}
+	if addr.IsPrivate() {
+		return "private or non-routable IP"
+	}
+	if addr.Is4() && specialIPv4Prefix(addr) {
+		return "special-use IP"
+	}
+	if addr.Is6() && specialIPv6Prefix(addr) {
+		return "special-use IP"
+	}
+	return ""
+}
+
+func specialIPv4Prefix(addr netip.Addr) bool {
+	prefixes := []string{
+		"0.0.0.0/8",
+		"100.64.0.0/10",
+		"192.0.0.0/24",
+		"192.0.2.0/24",
+		"198.18.0.0/15",
+		"198.51.100.0/24",
+		"203.0.113.0/24",
+		"240.0.0.0/4",
+	}
+	for _, raw := range prefixes {
+		prefix, err := netip.ParsePrefix(raw)
+		if err == nil && prefix.Contains(addr) {
+			return true
+		}
+	}
+	return false
+}
+
+func specialIPv6Prefix(addr netip.Addr) bool {
+	prefixes := []string{
+		"2001:db8::/32",
+	}
+	for _, raw := range prefixes {
+		prefix, err := netip.ParsePrefix(raw)
+		if err == nil && prefix.Contains(addr) {
+			return true
+		}
+	}
+	return false
 }
