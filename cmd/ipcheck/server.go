@@ -61,7 +61,7 @@ type resolveSummary struct {
 
 func runServer(args []string, stdout, stderr io.Writer) error {
 	opts := serveOptions{}
-	fs := flag.NewFlagSet("ipcheck serve", flag.ExitOnError)
+	fs := flag.NewFlagSet("ipcheck serve", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.StringVar(&opts.addr, "addr", "127.0.0.1:8765", "GUI 监听地址")
 	fs.BoolVar(&opts.open, "open", false, "启动后打开浏览器")
@@ -69,13 +69,20 @@ func runServer(args []string, stdout, stderr io.Writer) error {
 		fmt.Fprintf(fs.Output(), "Usage: ipcheck serve [options]\n\n")
 		fs.PrintDefaults()
 	}
-	_ = fs.Parse(args)
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
 
 	mux := newServerMux()
 	server := &http.Server{
 		Addr:              opts.addr,
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	url := displayURL(opts.addr)
@@ -102,6 +109,7 @@ func newServerMux() *http.ServeMux {
 }
 
 func serveAsset(w http.ResponseWriter, r *http.Request) {
+	setCommonHeaders(w)
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -143,7 +151,7 @@ func handleResolveAPI(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	var req resolveRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := decodeResolveRequest(r.Body, &req); err != nil {
 		writeJSONResponse(w, http.StatusBadRequest, map[string]string{"error": "JSON 请求解析失败: " + err.Error()})
 		return
 	}
@@ -169,10 +177,16 @@ func resolveFromRequest(ctx context.Context, req resolveRequest) ([]result, erro
 	if len(domains) == 0 {
 		return nil, errors.New("请至少输入一个域名")
 	}
+	if len(domains) > maxDomains {
+		return nil, fmt.Errorf("域名数量超过上限 %d: %d", maxDomains, len(domains))
+	}
 
 	dnsList := uniqueStrings(req.DNS)
 	if len(dnsList) == 0 {
 		dnsList = []string{"udp://1.1.1.1:53"}
+	}
+	if len(dnsList) > maxEndpoints {
+		return nil, fmt.Errorf("DNS endpoint 数量超过上限 %d: %d", maxEndpoints, len(dnsList))
 	}
 	endpoints, err := endpoint.MustParseMany(dnsList)
 	if err != nil {
@@ -183,6 +197,12 @@ func resolveFromRequest(ctx context.Context, req resolveRequest) ([]result, erro
 	if len(typeNames) == 0 {
 		typeNames = []string{"A", "AAAA"}
 	}
+	if len(typeNames) > maxQueryTypes {
+		return nil, fmt.Errorf("查询类型数量超过上限 %d: %d", maxQueryTypes, len(typeNames))
+	}
+	if err := validateResolveSize(len(domains), len(dnsList), len(typeNames)); err != nil {
+		return nil, err
+	}
 	qtypes := make([]uint16, 0, len(typeNames))
 	for _, typeName := range typeNames {
 		qtype, err := resolver.QueryType(typeName)
@@ -192,17 +212,29 @@ func resolveFromRequest(ctx context.Context, req resolveRequest) ([]result, erro
 		qtypes = append(qtypes, qtype)
 	}
 
+	if req.TimeoutMS < 0 {
+		return nil, fmt.Errorf("timeoutMs 必须在 %d 到 %d 之间", minTimeout.Milliseconds(), maxTimeout.Milliseconds())
+	}
 	timeout := time.Duration(req.TimeoutMS) * time.Millisecond
-	if timeout <= 0 {
-		timeout = 3 * time.Second
+	if timeout == 0 {
+		timeout = defaultTimeout
+	}
+	if timeout < minTimeout || timeout > maxTimeout {
+		return nil, fmt.Errorf("timeoutMs 必须在 %d 到 %d 之间", minTimeout.Milliseconds(), maxTimeout.Milliseconds())
+	}
+	if req.Retries < 0 || req.Retries > maxRetries {
+		return nil, fmt.Errorf("retries 必须在 0 到 %d 之间", maxRetries)
 	}
 	concurrency := req.Concurrency
-	if concurrency < 1 {
-		concurrency = 16
+	if concurrency == 0 {
+		concurrency = defaultConcurrency
 	}
-	dohMethod := strings.ToUpper(strings.TrimSpace(req.DoHMethod))
-	if dohMethod == "" {
-		dohMethod = "POST"
+	if concurrency < 1 || concurrency > maxConcurrency {
+		return nil, fmt.Errorf("concurrency 必须在 1 到 %d 之间", maxConcurrency)
+	}
+	dohMethod, err := normalizeDoHMethod(req.DoHMethod)
+	if err != nil {
+		return nil, err
 	}
 
 	ednsEnabled := true
@@ -278,9 +310,32 @@ func uniqueStrings(items []string) []string {
 }
 
 func writeJSONResponse(w http.ResponseWriter, status int, value any) {
+	setCommonHeaders(w)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(value)
+}
+
+func decodeResolveRequest(r io.Reader, req *resolveRequest) error {
+	dec := json.NewDecoder(r)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(req); err != nil {
+		return err
+	}
+	var extra any
+	if err := dec.Decode(&extra); err != io.EOF {
+		if err == nil {
+			return errors.New("请求体只能包含一个 JSON 对象")
+		}
+		return err
+	}
+	return nil
+}
+
+func setCommonHeaders(w http.ResponseWriter) {
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data: blob:; base-uri 'none'; form-action 'none'")
 }
 
 func displayURL(addr string) string {

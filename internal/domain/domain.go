@@ -167,7 +167,7 @@ func validateASCII(originalLabel, ascii string, strict bool) error {
 		return nil
 	}
 	for _, r := range ascii {
-		ok := r == '-' || r == '_' || r == '*' || r == '\\' || r == '.' ||
+		ok := r == '-' || r == '_' ||
 			(r >= 'a' && r <= 'z') ||
 			(r >= 'A' && r <= 'Z') ||
 			(r >= '0' && r <= '9')

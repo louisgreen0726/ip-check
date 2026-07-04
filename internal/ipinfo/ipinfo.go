@@ -102,7 +102,7 @@ func (c *Client) Lookup(ctx context.Context, ip string) Info {
 		return Info{IP: ip, Provider: c.provider(), Error: err.Error()}
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "ipcheck/0.1.1")
+	req.Header.Set("User-Agent", "ipcheck/0.1.2")
 
 	client := c.HTTPClient
 	if client == nil {

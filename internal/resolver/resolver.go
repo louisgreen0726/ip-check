@@ -21,6 +21,8 @@ import (
 	"ipcheck/internal/endpoint"
 )
 
+const maxDNSMessageWireSize = 65535
+
 func init() {
 	if os.Getenv("QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING") == "" {
 		_ = os.Setenv("QUIC_GO_DISABLE_RECEIVE_BUFFER_WARNING", "true")
@@ -113,6 +115,9 @@ func NewQuery(fqdn string, qtype uint16, opts Options) *dns.Msg {
 func Exchange(ctx context.Context, ep endpoint.Endpoint, query *dns.Msg, opts Options) (ExchangeResult, error) {
 	if opts.Timeout <= 0 {
 		opts.Timeout = 3 * time.Second
+	}
+	if opts.Retries < 0 {
+		opts.Retries = 0
 	}
 	if opts.UDPSize == 0 {
 		opts.UDPSize = 1232
@@ -298,6 +303,7 @@ func exchangeHTTPS(ctx context.Context, ep endpoint.Endpoint, query *dns.Msg, op
 		Timeout:   opts.Timeout,
 		Transport: transport,
 	}
+	defer transport.CloseIdleConnections()
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -309,9 +315,12 @@ func exchangeHTTPS(ctx context.Context, ep endpoint.Endpoint, query *dns.Msg, op
 		return ExchangeResult{Protocol: string(ep.Scheme), Duration: time.Since(start)}, fmt.Errorf("DoH HTTP 状态码异常: %d", resp.StatusCode)
 	}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, 65536+512))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxDNSMessageWireSize+1))
 	if err != nil {
 		return ExchangeResult{Protocol: string(ep.Scheme), Duration: time.Since(start)}, err
+	}
+	if len(data) > maxDNSMessageWireSize {
+		return ExchangeResult{Protocol: string(ep.Scheme), Duration: time.Since(start)}, fmt.Errorf("DoH 响应超过 DNS message 长度限制: %d", len(data))
 	}
 	msg := new(dns.Msg)
 	if err := msg.Unpack(data); err != nil {

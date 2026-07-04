@@ -23,7 +23,22 @@ import (
 	"ipcheck/internal/resolver"
 )
 
-const version = "0.1.1"
+const (
+	version = "0.1.2"
+
+	defaultTimeout     = 3 * time.Second
+	defaultRetries     = 1
+	defaultConcurrency = 16
+
+	minTimeout     = 100 * time.Millisecond
+	maxTimeout     = 30 * time.Second
+	maxRetries     = 5
+	maxConcurrency = 128
+	maxDomains     = 500
+	maxEndpoints   = 32
+	maxQueryTypes  = 16
+	maxResolveJobs = 10000
+)
 
 type stringList []string
 
@@ -104,7 +119,13 @@ func run(args []string, stdout, stderr io.Writer, stdin *os.File) error {
 		return runServer(args[1:], stdout, stderr)
 	}
 
-	opts, remaining := parseFlags(args, stderr)
+	opts, remaining, err := parseFlags(args, stderr)
+	if err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
 	if opts.version {
 		fmt.Fprintf(stdout, "ipcheck %s\n", version)
 		return nil
@@ -127,6 +148,14 @@ func run(args []string, stdout, stderr io.Writer, stdin *os.File) error {
 	}
 	if len(opts.qtypes) == 0 {
 		opts.qtypes = stringList{"A", "AAAA"}
+	}
+	opts.dns = stringList(uniqueStrings([]string(opts.dns)))
+	opts.qtypes = stringList(uniqueStrings([]string(opts.qtypes)))
+	if err := normalizeCLIOptions(&opts); err != nil {
+		return err
+	}
+	if err := validateResolveSize(len(domains), len(opts.dns), len(opts.qtypes)); err != nil {
+		return err
 	}
 
 	endpoints, err := endpoint.MustParseMany(opts.dns)
@@ -180,17 +209,17 @@ func shouldLaunchGUIByDefault(args []string, stdin *os.File) bool {
 	return err != nil || (stat.Mode()&os.ModeCharDevice) != 0
 }
 
-func parseFlags(args []string, stderr io.Writer) (cliOptions, []string) {
+func parseFlags(args []string, stderr io.Writer) (cliOptions, []string, error) {
 	opts := cliOptions{}
-	fs := flag.NewFlagSet("ipcheck", flag.ExitOnError)
+	fs := flag.NewFlagSet("ipcheck", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Var(&opts.dns, "dns", "DNS endpoint，可重复或逗号分隔，例如 udp://8.8.8.8:5353,tls://1.1.1.1:853,https://dns.google:443/dns-query,quic://dns.adguard-dns.com:853")
 	fs.Var(&opts.qtypes, "type", "查询类型，可重复或逗号分隔，默认 A,AAAA")
 	fs.StringVar(&opts.inputFile, "input", "", "从文件读取域名；使用 - 表示 stdin")
 	fs.StringVar(&opts.format, "format", "table", "输出格式: table, json, csv")
-	fs.DurationVar(&opts.timeout, "timeout", 3*time.Second, "单次请求超时")
-	fs.IntVar(&opts.retries, "retries", 1, "网络错误重试次数")
-	fs.IntVar(&opts.concurrency, "concurrency", 16, "并发查询数")
+	fs.DurationVar(&opts.timeout, "timeout", defaultTimeout, "单次请求超时")
+	fs.IntVar(&opts.retries, "retries", defaultRetries, "网络错误重试次数")
+	fs.IntVar(&opts.concurrency, "concurrency", defaultConcurrency, "并发查询数")
 	fs.BoolVar(&opts.strict, "strict", false, "严格主机名校验模式")
 	fs.BoolVar(&opts.noEDNS, "no-edns", false, "禁用 EDNS0")
 	fs.BoolVar(&opts.dnssec, "dnssec", false, "设置 EDNS DNSSEC DO bit")
@@ -210,11 +239,10 @@ func parseFlags(args []string, stderr io.Writer) (cliOptions, []string) {
 		fmt.Fprintln(fs.Output(), "\nOptions:")
 		fs.PrintDefaults()
 	}
-	_ = fs.Parse(args)
-	if opts.concurrency < 1 {
-		opts.concurrency = 1
+	if err := fs.Parse(args); err != nil {
+		return opts, nil, err
 	}
-	return opts, fs.Args()
+	return opts, fs.Args(), nil
 }
 
 func collectInputs(args []string, inputFile string, stdin *os.File) ([]string, error) {
@@ -225,6 +253,9 @@ func collectInputs(args []string, inputFile string, stdin *os.File) ([]string, e
 		var data []byte
 		var err error
 		if inputFile == "-" {
+			if stdin == nil {
+				return nil, errors.New("--input - 需要可读取的 stdin")
+			}
 			data, err = io.ReadAll(stdin)
 		} else {
 			data, err = os.ReadFile(inputFile)
@@ -258,6 +289,52 @@ func collectInputs(args []string, inputFile string, stdin *os.File) ([]string, e
 		unique = append(unique, item)
 	}
 	return unique, nil
+}
+
+func normalizeCLIOptions(opts *cliOptions) error {
+	if opts.timeout < minTimeout || opts.timeout > maxTimeout {
+		return fmt.Errorf("--timeout 必须在 %s 到 %s 之间", minTimeout, maxTimeout)
+	}
+	if opts.retries < 0 || opts.retries > maxRetries {
+		return fmt.Errorf("--retries 必须在 0 到 %d 之间", maxRetries)
+	}
+	if opts.concurrency < 1 || opts.concurrency > maxConcurrency {
+		return fmt.Errorf("--concurrency 必须在 1 到 %d 之间", maxConcurrency)
+	}
+	method, err := normalizeDoHMethod(opts.dohMethod)
+	if err != nil {
+		return err
+	}
+	opts.dohMethod = method
+	return nil
+}
+
+func normalizeDoHMethod(raw string) (string, error) {
+	method := strings.ToUpper(strings.TrimSpace(raw))
+	if method == "" {
+		return "POST", nil
+	}
+	if method != "POST" && method != "GET" {
+		return "", fmt.Errorf("DoH method 只能是 GET 或 POST: %s", raw)
+	}
+	return method, nil
+}
+
+func validateResolveSize(domainCount, endpointCount, qtypeCount int) error {
+	if domainCount > maxDomains {
+		return fmt.Errorf("域名数量超过上限 %d: %d", maxDomains, domainCount)
+	}
+	if endpointCount > maxEndpoints {
+		return fmt.Errorf("DNS endpoint 数量超过上限 %d: %d", maxEndpoints, endpointCount)
+	}
+	if qtypeCount > maxQueryTypes {
+		return fmt.Errorf("查询类型数量超过上限 %d: %d", maxQueryTypes, qtypeCount)
+	}
+	jobs := domainCount * endpointCount * qtypeCount
+	if jobs > maxResolveJobs {
+		return fmt.Errorf("解析任务数量超过上限 %d: %d", maxResolveJobs, jobs)
+	}
+	return nil
 }
 
 func resolveAll(ctx context.Context, inputs []string, endpoints []endpoint.Endpoint, qtypes []uint16, cli cliOptions) []result {
@@ -349,6 +426,13 @@ func resolveOne(ctx context.Context, t task, opts resolver.Options) result {
 		base.TransportProtocol = exchange.Protocol
 		base.DurationMS = exchange.Duration.Milliseconds()
 		base.Error = err.Error()
+		return base
+	}
+	if exchange.Message == nil {
+		base.Status = "ERROR"
+		base.TransportProtocol = exchange.Protocol
+		base.DurationMS = exchange.Duration.Milliseconds()
+		base.Error = "DNS 响应为空"
 		return base
 	}
 

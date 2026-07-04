@@ -97,15 +97,15 @@ a.b.c.d.e.f.g.example.com
           <div class="option-grid">
             <label>
               <span data-i18n="options.timeout">超时 ms</span>
-              <input id="timeout-ms" type="number" min="100" step="100" value="3000">
+              <input id="timeout-ms" type="number" min="100" max="30000" step="100" value="3000">
             </label>
             <label>
               <span data-i18n="options.retries">重试</span>
-              <input id="retries" type="number" min="0" max="10" value="1">
+              <input id="retries" type="number" min="0" max="5" value="1">
             </label>
             <label>
               <span data-i18n="options.concurrency">并发</span>
-              <input id="concurrency" type="number" min="1" max="256" value="16">
+              <input id="concurrency" type="number" min="1" max="128" value="16">
             </label>
             <label>
               <span data-i18n="options.doh">DoH</span>
@@ -120,7 +120,7 @@ a.b.c.d.e.f.g.example.com
         <details class="advanced-section" open>
           <summary data-i18n="advanced.title">高级选项</summary>
           <div class="toggle-grid">
-            <label><input id="ip-info" type="checkbox" checked><span data-i18n="advanced.ipInfo">IP 信息</span></label>
+            <label><input id="ip-info" type="checkbox"><span data-i18n="advanced.ipInfo">IP 信息</span></label>
             <label><input id="edns" type="checkbox" checked><span>EDNS0</span></label>
             <label><input id="dnssec" type="checkbox"><span>DNSSEC DO</span></label>
             <label><input id="strict" type="checkbox"><span data-i18n="advanced.strict">严格域名</span></label>
@@ -149,7 +149,7 @@ a.b.c.d.e.f.g.example.com
           <article class="metric-card metric-ip">
             <span>IP</span>
             <strong id="sum-ip">0</strong>
-            <small data-i18n="summary.ipSmall">含信息</small>
+            <small data-i18n="summary.ipSmall">含 IP</small>
           </article>
           <article id="metric-error" class="metric-card metric-error">
             <span data-i18n="summary.error">错误</span>

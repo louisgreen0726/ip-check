@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 type Scheme string
@@ -53,6 +54,9 @@ func Parse(raw string) (Endpoint, error) {
 	host := u.Hostname()
 	if host == "" {
 		return Endpoint{}, fmt.Errorf("DNS endpoint 缺少 host: %s", original)
+	}
+	if hasSpaceOrControl(host) {
+		return Endpoint{}, fmt.Errorf("DNS endpoint host 包含空白或控制字符: %q", host)
 	}
 
 	port := defaultPort(scheme)
@@ -167,6 +171,9 @@ func parseHostPort(raw string, scheme Scheme, original string) (Endpoint, error)
 	if host == "" {
 		return Endpoint{}, fmt.Errorf("DNS endpoint 缺少 host: %s", original)
 	}
+	if hasSpaceOrControl(host) {
+		return Endpoint{}, fmt.Errorf("DNS endpoint host 包含空白或控制字符: %q", host)
+	}
 
 	return Endpoint{
 		Raw:    original,
@@ -228,4 +235,13 @@ func parseBool(raw string) bool {
 	default:
 		return false
 	}
+}
+
+func hasSpaceOrControl(s string) bool {
+	for _, r := range s {
+		if unicode.IsSpace(r) || unicode.IsControl(r) {
+			return true
+		}
+	}
+	return false
 }

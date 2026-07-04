@@ -77,6 +77,17 @@ func TestRejectInvalidPorts(t *testing.T) {
 	}
 }
 
+func TestRejectHostWhitespace(t *testing.T) {
+	for _, raw := range []string{
+		"bad host",
+		"udp://bad%20host:53",
+	} {
+		if _, err := Parse(raw); err == nil {
+			t.Fatalf("expected error for %s", raw)
+		}
+	}
+}
+
 func TestEndpointTLSName(t *testing.T) {
 	ep, err := Parse("tls://1.1.1.1:853?sni=cloudflare-dns.com")
 	if err != nil {

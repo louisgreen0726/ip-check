@@ -82,6 +82,27 @@ func TestNormalizeUnderscoreWarningAndStrictMode(t *testing.T) {
 	}
 }
 
+func TestNormalizeRejectsUnsupportedCharacters(t *testing.T) {
+	for _, input := range []string{
+		"ex*ample.com",
+		`bad\name.example.com`,
+	} {
+		if _, err := Normalize(input, Options{}); err == nil {
+			t.Fatalf("expected %q to be rejected", input)
+		}
+	}
+}
+
+func TestNormalizeAllowsWildcardLabel(t *testing.T) {
+	name, err := Normalize("*.example.com", Options{})
+	if err != nil {
+		t.Fatalf("wildcard label should be accepted: %v", err)
+	}
+	if name.ASCII != "*.example.com" {
+		t.Fatalf("unexpected wildcard normalization: %s", name.ASCII)
+	}
+}
+
 func TestNormalizeRoot(t *testing.T) {
 	name, err := Normalize(".", Options{})
 	if err != nil {

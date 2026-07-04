@@ -43,7 +43,7 @@ const messages = {
     "summary.total": "总计",
     "summary.totalSmall": "条结果",
     "summary.okSmall": "成功",
-    "summary.ipSmall": "含信息",
+    "summary.ipSmall": "含 IP",
     "summary.error": "错误",
     "summary.errorSmall": "需关注",
     "summary.duration": "耗时",
@@ -161,7 +161,7 @@ const messages = {
     "summary.total": "Total",
     "summary.totalSmall": "results",
     "summary.okSmall": "Success",
-    "summary.ipSmall": "With info",
+    "summary.ipSmall": "With IPs",
     "summary.error": "Errors",
     "summary.errorSmall": "Needs attention",
     "summary.duration": "Duration",
@@ -254,6 +254,7 @@ const diagnosticTranslations = [
   { pattern: /^DNS endpoint 为空$/u, en: () => "DNS endpoint is empty" },
   { pattern: /^DNS endpoint URL 解析失败: (.+)$/u, en: ([, reason]) => `Failed to parse DNS endpoint URL: ${reason}` },
   { pattern: /^DNS endpoint 缺少 host: (.+)$/u, en: ([, endpoint]) => `DNS endpoint is missing a host: ${endpoint}` },
+  { pattern: /^DNS endpoint host 包含空白或控制字符: (.+)$/u, en: ([, host]) => `DNS endpoint host contains whitespace or control characters: ${host}` },
   { pattern: /^域名为空$/u, en: () => "Domain is empty" },
   { pattern: /^输入为空$/u, en: () => "Input is empty" },
   { pattern: /^输入是 IP 地址，不是可查询的域名: (.+)$/u, en: ([, input]) => `Input is an IP address, not a queryable domain: ${input}` },
@@ -262,12 +263,20 @@ const diagnosticTranslations = [
   { pattern: /^域名 label 包含空白或控制字符: (.+)$/u, en: ([, label]) => `Domain label contains whitespace or control characters: ${label}` },
   { pattern: /^域名 label 超过 63 字节: (.+)$/u, en: ([, label]) => `Domain label exceeds 63 bytes: ${label}` },
   { pattern: /^完整域名超过 253 字符: (.+)$/u, en: ([, length]) => `Full domain exceeds 253 characters: ${length}` },
+  { pattern: /^域名数量超过上限 (\d+): (\d+)$/u, en: ([, limit, count]) => `Domain count exceeds the limit ${limit}: ${count}` },
+  { pattern: /^DNS endpoint 数量超过上限 (\d+): (\d+)$/u, en: ([, limit, count]) => `DNS endpoint count exceeds the limit ${limit}: ${count}` },
+  { pattern: /^查询类型数量超过上限 (\d+): (\d+)$/u, en: ([, limit, count]) => `Query type count exceeds the limit ${limit}: ${count}` },
+  { pattern: /^解析任务数量超过上限 (\d+): (\d+)$/u, en: ([, limit, count]) => `Resolve task count exceeds the limit ${limit}: ${count}` },
+  { pattern: /^timeoutMs 必须在 (\d+) 到 (\d+) 之间$/u, en: ([, min, max]) => `timeoutMs must be between ${min} and ${max}` },
+  { pattern: /^retries 必须在 0 到 (\d+) 之间$/u, en: ([, max]) => `retries must be between 0 and ${max}` },
+  { pattern: /^concurrency 必须在 1 到 (\d+) 之间$/u, en: ([, max]) => `concurrency must be between 1 and ${max}` },
   { pattern: /^URL 解析失败: (.+)$/u, en: ([, reason]) => `URL parse failed: ${reason}` },
   { pattern: /^label (.+) 包含下划线；DNS 可查询，但它不是标准主机名 label$/u, en: ([, label]) => `Label ${label} contains an underscore; DNS can query it, but it is not a standard hostname label` },
   { pattern: /^检测到通配符 label \*；将按字面 DNS 名称查询$/u, en: () => "Wildcard label * detected; it will be queried as a literal DNS name" },
   { pattern: /^label (.+) 以连字符开头或结尾；DNS 可查询，但它不是标准主机名 label$/u, en: ([, label]) => `Label ${label} starts or ends with a hyphen; DNS can query it, but it is not a standard hostname label` },
   { pattern: /^域名 label 包含不支持的字符 (.+): (.+)$/u, en: ([, char, label]) => `Domain label contains unsupported character ${char}: ${label}` },
   { pattern: /^DoH 响应不是合法 DNS message: (.+)$/u, en: ([, reason]) => `DoH response is not a valid DNS message: ${reason}` },
+  { pattern: /^DoH 响应超过 DNS message 长度限制: (.+)$/u, en: ([, length]) => `DoH response exceeds the DNS message length limit: ${length}` },
   { pattern: /^DNS message 超过 DoQ 2 字节长度限制: (.+)$/u, en: ([, length]) => `DNS message exceeds the DoQ 2-byte length limit: ${length}` },
   { pattern: /^DoQ 响应不是合法 DNS message: (.+)$/u, en: ([, reason]) => `DoQ response is not a valid DNS message: ${reason}` }
 ];
@@ -464,9 +473,9 @@ function gatherPayload() {
     domainText: $("#domains").value,
     dns: $$(".endpoint-input").map((input) => input.value.trim()).filter(Boolean),
     types: Array.from(typeSet),
-    timeoutMs: numberValue("#timeout-ms", 3000),
-    retries: numberValue("#retries", 1),
-    concurrency: numberValue("#concurrency", 16),
+    timeoutMs: numberValue("#timeout-ms", 3000, 100, 30000),
+    retries: numberValue("#retries", 1, 0, 5),
+    concurrency: numberValue("#concurrency", 16, 1, 128),
     strict: $("#strict").checked,
     ipInfo: $("#ip-info").checked,
     edns: $("#edns").checked,
@@ -1285,7 +1294,7 @@ function restoreSettings() {
     $("#retries").value = data.retries || "1";
     $("#concurrency").value = data.concurrency || "16";
     $("#strict").checked = Boolean(data.strict);
-    $("#ip-info").checked = data.ipInfo !== false;
+    $("#ip-info").checked = Boolean(data.ipInfo);
     $("#edns").checked = data.edns !== false;
     $("#dnssec").checked = Boolean(data.dnssec);
     $("#doh-method").value = data.dohMethod || "POST";
@@ -1302,9 +1311,10 @@ function splitList(value) {
   return value.split(/[,\s]+/).map((part) => part.trim()).filter(Boolean);
 }
 
-function numberValue(selector, fallback) {
+function numberValue(selector, fallback, min = 0, max = Number.POSITIVE_INFINITY) {
   const value = Number($(selector).value);
-  return Number.isFinite(value) && value >= 0 ? value : fallback;
+  if (!Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
 }
 
 function csvCell(value) {

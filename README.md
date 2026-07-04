@@ -166,9 +166,9 @@ warning. Use `--strict` to enforce hostname-style labels.
 --type TYPE                DNS query type; repeatable or comma-separated
 --input FILE               Read domain names from a file; use - for stdin
 --format table|json|csv    Output format
---timeout 3s               Per-request timeout
---retries 1                Retry count for transport errors
---concurrency 16           Concurrent query count
+--timeout 3s               Per-request timeout, from 100ms to 30s
+--retries 1                Retry count for transport errors, from 0 to 5
+--concurrency 16           Concurrent query count, from 1 to 128
 --strict                   Strict hostname validation
 --no-edns                  Disable EDNS0
 --dnssec                   Set the EDNS DNSSEC DO bit

@@ -23,6 +23,12 @@ func TestServerAssetsAndHealth(t *testing.T) {
 	if !bytes.Contains(rec.Body.Bytes(), []byte("IP Check")) {
 		t.Fatal("index did not contain app title")
 	}
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("missing nosniff header: %q", rec.Header().Get("X-Content-Type-Options"))
+	}
+	if rec.Header().Get("Content-Security-Policy") == "" {
+		t.Fatal("missing Content-Security-Policy header")
+	}
 
 	req = httptest.NewRequest(http.MethodGet, "/api/health", nil)
 	rec = httptest.NewRecorder()
@@ -30,11 +36,14 @@ func TestServerAssetsAndHealth(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("GET /api/health status = %d", rec.Code)
 	}
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Fatalf("missing API nosniff header: %q", rec.Header().Get("X-Content-Type-Options"))
+	}
 }
 
 func TestResolveAPIInvalidDomain(t *testing.T) {
 	mux := newServerMux()
-	body := bytes.NewBufferString(`{"domainText":"a..b.com","dns":["udp://127.0.0.1:1"],"types":["A"],"timeoutMs":50,"retries":0}`)
+	body := bytes.NewBufferString(`{"domainText":"a..b.com","dns":["udp://127.0.0.1:1"],"types":["A"],"timeoutMs":100,"retries":0}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/resolve", body)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -95,6 +104,11 @@ func TestResolveAPIBadRequest(t *testing.T) {
 		`{"domainText":"","dns":["udp://127.0.0.1:1"],"types":["A"]}`,
 		`{"domainText":"example.com","dns":["udp://127.0.0.1:70000"],"types":["A"]}`,
 		`{"domainText":"example.com","dns":["udp://127.0.0.1:53"],"types":["NOT_A_TYPE"]}`,
+		`{"domainText":"example.com","dns":["udp://127.0.0.1:53"],"types":["A"],"timeoutMs":50}`,
+		`{"domainText":"example.com","dns":["udp://127.0.0.1:53"],"types":["A"],"retries":-1}`,
+		`{"domainText":"example.com","dns":["udp://127.0.0.1:53"],"types":["A"],"concurrency":129}`,
+		`{"domainText":"example.com","dns":["udp://127.0.0.1:53"],"types":["A"],"unknown":true}`,
+		`{"domainText":"example.com","dns":["udp://127.0.0.1:53"],"types":["A"]}{}`,
 	}
 	for _, body := range tests {
 		req := httptest.NewRequest(http.MethodPost, "/api/resolve", bytes.NewBufferString(body))

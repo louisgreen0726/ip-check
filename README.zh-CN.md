@@ -150,9 +150,9 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com
 --type TYPE                DNS 查询类型；可重复或用逗号分隔
 --input FILE               从文件读取域名；使用 - 表示 stdin
 --format table|json|csv    输出格式
---timeout 3s               单次请求超时
---retries 1                传输错误重试次数
---concurrency 16           并发查询数
+--timeout 3s               单次请求超时，范围 100ms 到 30s
+--retries 1                传输错误重试次数，范围 0 到 5
+--concurrency 16           并发查询数，范围 1 到 128
 --strict                   严格主机名校验
 --no-edns                  禁用 EDNS0
 --dnssec                   设置 EDNS DNSSEC DO bit

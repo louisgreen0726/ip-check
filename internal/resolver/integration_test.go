@@ -1,6 +1,7 @@
 package resolver
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"io"
@@ -23,6 +24,22 @@ func TestExchangeUDPCustomPort(t *testing.T) {
 	ep := endpoint.Endpoint{Scheme: endpoint.UDP, Host: "127.0.0.1", Port: addr.Port, Raw: "test-udp"}
 	msg := NewQuery("example.com.", dns.TypeA, Options{EDNS: true, UDPSize: 1232})
 	result, err := Exchange(context.Background(), ep, msg, Options{Timeout: time.Second, EDNS: true, UDPSize: 1232})
+	if err != nil {
+		t.Fatalf("Exchange returned error: %v", err)
+	}
+	parsed := ParseMessage(result.Message)
+	if len(parsed.IPs) != 1 || parsed.IPs[0] != "192.0.2.42" {
+		t.Fatalf("unexpected IPs: %#v", parsed.IPs)
+	}
+}
+
+func TestExchangeNegativeRetriesStillAttemptsOnce(t *testing.T) {
+	addr, shutdown := startDNSServer(t, "udp")
+	defer shutdown()
+
+	ep := endpoint.Endpoint{Scheme: endpoint.UDP, Host: "127.0.0.1", Port: addr.Port, Raw: "test-udp"}
+	msg := NewQuery("example.com.", dns.TypeA, Options{EDNS: true, UDPSize: 1232})
+	result, err := Exchange(context.Background(), ep, msg, Options{Timeout: time.Second, Retries: -1, EDNS: true, UDPSize: 1232})
 	if err != nil {
 		t.Fatalf("Exchange returned error: %v", err)
 	}
@@ -104,6 +121,33 @@ func TestExchangeDoHCustomPort(t *testing.T) {
 	parsed := ParseMessage(result.Message)
 	if len(parsed.IPs) != 1 || parsed.IPs[0] != "192.0.2.42" {
 		t.Fatalf("unexpected IPs: %#v", parsed.IPs)
+	}
+}
+
+func TestExchangeDoHRejectsOversizedResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/dns-message")
+		_, _ = w.Write(bytes.Repeat([]byte{0}, maxDNSMessageWireSize+1))
+	}))
+	defer server.Close()
+
+	u, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatalf("parse server URL: %v", err)
+	}
+	host, port, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		t.Fatalf("split host port: %v", err)
+	}
+	portNum, err := net.LookupPort("tcp", port)
+	if err != nil {
+		t.Fatalf("parse port: %v", err)
+	}
+
+	ep := endpoint.Endpoint{Scheme: endpoint.HTTP, Host: host, Port: portNum, Path: "/dns-query", Raw: server.URL}
+	msg := NewQuery("example.com.", dns.TypeA, Options{EDNS: true, UDPSize: 1232})
+	if _, err := Exchange(context.Background(), ep, msg, Options{Timeout: time.Second, EDNS: true, UDPSize: 1232, DoHMethod: "POST"}); err == nil {
+		t.Fatal("expected oversized DoH response error")
 	}
 }
 
